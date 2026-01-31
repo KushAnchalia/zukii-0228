@@ -29,12 +29,13 @@ const Index = () => {
         <AnimatedBackground />
         
         <div className="text-center relative z-10 animate-fade-in">
-          <div className="relative">
+          <div className="relative flex items-center justify-center gap-3 mb-8">
             <img
-              src="./zukii-logo.png"
+              src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
               alt="Zukii"
-              className="h-28 w-auto mx-auto mb-8 animate-glow-pulse logo-glow"
+              className="h-20 w-auto animate-glow-pulse logo-glow"
             />
+            <span className="text-4xl font-bold text-white font-display gradient-text">Zukii</span>
           </div>
           <div className="flex items-center justify-center gap-3 text-gray-400">
             <div className="relative">

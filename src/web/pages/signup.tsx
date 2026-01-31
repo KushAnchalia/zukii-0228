@@ -45,12 +45,16 @@ const Signup = () => {
       <div className="w-full max-w-md relative z-10">
         {/* Logo with glow */}
         <div className="flex justify-center mb-10 animate-fade-in-up">
-          <div className="relative">
+          <div 
+            className="relative flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => setLocation('/')}
+          >
             <img
-              src="./zukii-logo.png"
+              src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
               alt="Zukii"
-              className="h-20 w-auto logo-glow"
+              className="h-16 w-auto logo-glow"
             />
+            <span className="text-3xl font-bold text-white font-display gradient-text">Zukii</span>
           </div>
         </div>
 
