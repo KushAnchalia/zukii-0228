@@ -345,7 +345,7 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
 const DemoPreview = ({ agentId }: { agentId: string }) => {
   const [copiedTestHtml, setCopiedTestHtml] = useState(false);
 
-  // Generate test HTML that users can save and open (using VAPI widget script)
+  // Generate test HTML that users can save and open (using VAPI official script tag method)
   const generateTestHtml = () => {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -391,45 +391,6 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             border-radius: 12px;
             font-size: 0.875rem;
         }
-        .vapi-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
-            transition: all 0.3s ease;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .vapi-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 30px rgba(139, 92, 246, 0.7);
-        }
-        .vapi-btn.active {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
-            animation: pulse 1.5s infinite;
-        }
-        .vapi-btn.connecting {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
         .status-text {
             position: fixed;
             bottom: 100px;
@@ -441,128 +402,95 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             color: #a78bfa;
             z-index: 9998;
         }
+        .loading {
+            margin-top: 2rem;
+            color: #a78bfa;
+            font-size: 0.875rem;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
     </style>
 </head>
 <body>
     <h1>🎤 Zukii Voice Agent</h1>
-    <p>Click the voice button in the bottom-right corner to start talking to your AI assistant.</p>
+    <p>The voice button will appear in the bottom-right corner. Click it to start talking to your AI assistant.</p>
     <div class="hint">
         💡 Tip: Allow microphone access when prompted to enable voice interaction.
     </div>
-    
-    <button id="vapiBtn" class="vapi-btn">🎤</button>
+    <div id="loadingStatus" class="loading">Loading voice widget</div>
     <div id="statusText" class="status-text" style="display: none;"></div>
 
-    <!-- VAPI Widget SDK -->
+    <!-- VAPI Official Widget Script Tag Method -->
     <script>
         var vapiInstance = null;
-        var isCallActive = false;
-        var btn = document.getElementById('vapiBtn');
-        var statusText = document.getElementById('statusText');
-        
-        function updateStatus(text, show) {
-            statusText.textContent = text;
-            statusText.style.display = show ? 'block' : 'none';
-        }
-        
-        function loadVapiSDK() {
-            return new Promise(function(resolve, reject) {
-                var script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.umd.min.js';
-                script.onload = function() {
-                    resolve(window.Vapi);
-                };
-                script.onerror = function() {
-                    reject(new Error('Failed to load VAPI SDK'));
-                };
-                document.head.appendChild(script);
-            });
-        }
-        
-        async function initVapi() {
-            try {
-                var VapiClass = await loadVapiSDK();
-                vapiInstance = new VapiClass('${VAPI_PUBLIC_KEY}');
-                
-                vapiInstance.on('call-start', function() {
-                    isCallActive = true;
-                    btn.innerHTML = '📞';
-                    btn.classList.add('active');
-                    btn.classList.remove('connecting');
-                    updateStatus('Connected - Speak now!', true);
-                });
-                
-                vapiInstance.on('call-end', function() {
-                    isCallActive = false;
-                    btn.innerHTML = '🎤';
-                    btn.classList.remove('active');
-                    updateStatus('Call ended', true);
-                    setTimeout(function() { updateStatus('', false); }, 2000);
-                });
-                
-                vapiInstance.on('speech-start', function() {
-                    btn.innerHTML = '🔊';
-                    updateStatus('AI is speaking...', true);
-                });
-                
-                vapiInstance.on('speech-end', function() {
-                    if (isCallActive) {
-                        btn.innerHTML = '🎧';
-                        updateStatus('Listening...', true);
-                    }
-                });
-                
-                vapiInstance.on('error', function(error) {
-                    console.error('VAPI Error:', error);
-                    isCallActive = false;
-                    btn.innerHTML = '❌';
-                    btn.classList.remove('active', 'connecting');
-                    updateStatus('Error: ' + (error.message || 'Connection failed'), true);
-                    setTimeout(function() {
-                        btn.innerHTML = '🎤';
-                        updateStatus('', false);
-                    }, 3000);
-                });
-                
-                console.log('VAPI initialized successfully');
-                updateStatus('Ready - Click to start', true);
-                setTimeout(function() { updateStatus('', false); }, 2000);
-                
-            } catch (error) {
-                console.error('Failed to initialize VAPI:', error);
-                updateStatus('Failed to load voice SDK', true);
-            }
-        }
-        
-        btn.onclick = async function() {
-            if (!vapiInstance) {
-                updateStatus('Initializing...', true);
-                await initVapi();
-            }
-            
-            if (!isCallActive && vapiInstance) {
-                try {
-                    btn.innerHTML = '⏳';
-                    btn.classList.add('connecting');
-                    updateStatus('Connecting...', true);
-                    await vapiInstance.start('${agentId}');
-                } catch (error) {
-                    console.error('Failed to start call:', error);
-                    btn.innerHTML = '❌';
-                    btn.classList.remove('connecting');
-                    updateStatus('Failed to connect: ' + (error.message || 'Unknown error'), true);
-                    setTimeout(function() {
-                        btn.innerHTML = '🎤';
-                        updateStatus('', false);
-                    }, 3000);
-                }
-            } else if (vapiInstance) {
-                vapiInstance.stop();
+        const assistant = "${agentId}";
+        const apiKey = "${VAPI_PUBLIC_KEY}";
+        const buttonConfig = {
+            position: "bottom-right",
+            offset: "40px",
+            width: "50px",
+            height: "50px",
+            idle: {
+                color: "rgb(93, 254, 202)",
+                type: "pill",
+                title: "Talk to AI",
+                subtitle: "Click to chat",
+                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone.svg"
+            },
+            loading: {
+                color: "rgb(93, 124, 202)",
+                type: "pill",
+                title: "Connecting",
+                subtitle: "Please wait...",
+                icon: "https://unpkg.com/lucide-static@0.321.0/icons/loader-2.svg"
+            },
+            active: {
+                color: "rgb(255, 0, 0)",
+                type: "pill",
+                title: "Call Active",
+                subtitle: "Click to end",
+                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone-off.svg"
             }
         };
-        
-        // Initialize on page load
-        initVapi();
+
+        (function (d, t) {
+            var g = document.createElement(t),
+                s = d.getElementsByTagName(t)[0];
+            g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
+            g.defer = true;
+            g.async = true;
+            s.parentNode.insertBefore(g, s);
+
+            g.onload = function () {
+                document.getElementById('loadingStatus').style.display = 'none';
+                if (window.vapiSDK) {
+                    vapiInstance = window.vapiSDK.run({
+                        apiKey: apiKey,
+                        assistant: assistant,
+                        config: buttonConfig
+                    });
+                    console.log('VAPI Widget initialized successfully');
+                } else {
+                    document.getElementById('loadingStatus').textContent = 'Failed to initialize widget';
+                    document.getElementById('loadingStatus').style.display = 'block';
+                    console.error('vapiSDK not found on window');
+                }
+            };
+
+            g.onerror = function () {
+                document.getElementById('loadingStatus').textContent = 'Failed to load voice SDK';
+                document.getElementById('loadingStatus').style.display = 'block';
+                console.error('Failed to load VAPI script');
+            };
+        })(document, "script");
     </script>
 </body>
 </html>`;
