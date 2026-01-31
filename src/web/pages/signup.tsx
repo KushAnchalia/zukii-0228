@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/store';
-import AnimatedBackground from '@/components/animated-background';
 
 const Signup = () => {
   const [, setLocation] = useLocation();
@@ -12,7 +11,6 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       setLocation('/dashboard');
@@ -23,7 +21,6 @@ const Signup = () => {
     e.preventDefault();
     setError('');
 
-    // Validate fields
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all fields');
       return;
@@ -51,102 +48,231 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050208] flex items-center justify-center p-4 relative overflow-hidden">
-      <AnimatedBackground />
+    <div 
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #050208 0%, #0a0514 50%, #050208 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        position: 'relative'
+      }}
+    >
+      {/* Simple animated background */}
+      <div 
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 60%)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo with glow */}
-        <div className="flex justify-center mb-10 animate-fade-in-up">
-          <div 
-            className="relative flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setLocation('/')}
+      <div style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+        {/* Logo */}
+        <div 
+          onClick={() => setLocation('/')}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '2.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <img
+            src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
+            alt="Zukii Logo"
+            style={{ height: '56px', width: 'auto' }}
+          />
+          <span 
+            style={{
+              fontSize: '2rem',
+              fontWeight: 700,
+              background: 'linear-gradient(90deg, #8B5CF6, #22D3EE)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
           >
-            <img
-              src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-              alt="Zukii Logo"
-              className="h-16 w-auto logo-glow"
-            />
-            <span className="text-3xl font-bold text-white font-display gradient-text">Zukii</span>
-          </div>
+            Zukii
+          </span>
         </div>
 
-        {/* Card with glassmorphism */}
-        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2 font-display">
-              Create your <span className="gradient-text">account</span>
+        {/* Card */}
+        <div 
+          style={{
+            background: 'rgba(20, 15, 35, 0.8)',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            borderRadius: '24px',
+            padding: '2rem',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h1 style={{ 
+              fontSize: '1.75rem', 
+              fontWeight: 700, 
+              color: 'white', 
+              marginBottom: '0.5rem',
+              fontFamily: 'Syne, sans-serif'
+            }}>
+              Create your account
             </h1>
-            <p className="text-gray-400 text-sm">Start building voice AI agents today</p>
+            <p style={{ color: '#9CA3AF', fontSize: '0.875rem' }}>
+              Start building voice AI agents today
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm text-center backdrop-blur-sm animate-scale-in">
-                <div className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {error}
-                </div>
+              <div 
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1rem',
+                  color: '#f87171',
+                  fontSize: '0.875rem',
+                  textAlign: 'center',
+                  marginBottom: '1.25rem'
+                }}
+              >
+                {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="signup-name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label 
+                htmlFor="name" 
+                style={{ 
+                  display: 'block', 
+                  color: '#D1D5DB', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 500,
+                  marginBottom: '0.5rem' 
+                }}
+              >
                 Full Name
               </label>
               <input
-                id="signup-name"
+                id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
                 autoComplete="name"
-                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  padding: '0 16px',
+                  background: 'rgba(30, 25, 50, 0.8)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#8B5CF6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="signup-email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label 
+                htmlFor="email" 
+                style={{ 
+                  display: 'block', 
+                  color: '#D1D5DB', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 500,
+                  marginBottom: '0.5rem' 
+                }}
+              >
                 Email
               </label>
               <input
-                id="signup-email"
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
-                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  padding: '0 16px',
+                  background: 'rgba(30, 25, 50, 0.8)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#8B5CF6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="signup-password" className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label 
+                htmlFor="password" 
+                style={{ 
+                  display: 'block', 
+                  color: '#D1D5DB', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 500,
+                  marginBottom: '0.5rem' 
+                }}
+              >
                 Password
               </label>
               <input
-                id="signup-password"
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
-                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  padding: '0 16px',
+                  background: 'rgba(30, 25, 50, 0.8)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#8B5CF6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
-              <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <p style={{ color: '#6B7280', fontSize: '0.75rem', marginTop: '0.5rem' }}>
                 Minimum 8 characters
               </p>
             </div>
@@ -154,48 +280,101 @@ const Signup = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 btn-gradient text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+              style={{
+                width: '100%',
+                height: '48px',
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               {isLoading ? (
                 <>
-                  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg 
+                    style={{ width: '20px', height: '20px', animation: 'spin 1s linear infinite' }} 
+                    viewBox="0 0 24 24" 
+                    fill="none"
+                  >
+                    <circle 
+                      style={{ opacity: 0.25 }} 
+                      cx="12" cy="12" r="10" 
+                      stroke="currentColor" 
+                      strokeWidth="4" 
+                    />
+                    <path 
+                      style={{ opacity: 0.75 }} 
+                      fill="currentColor" 
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+                    />
                   </svg>
                   Creating account...
                 </>
               ) : (
-                <>
-                  Create Account
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </>
+                'Create Account'
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-400 text-sm">
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <p style={{ color: '#9CA3AF', fontSize: '0.875rem' }}>
               Already have an account?{' '}
               <button
                 type="button"
                 onClick={() => setLocation('/login')}
-                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors relative group"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#22D3EE',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
               >
                 Sign in
-                <span className="absolute inset-x-0 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-gray-500 text-xs mt-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          By signing up, you agree to our{' '}
-          <span className="text-violet-400 hover:text-violet-300 cursor-pointer transition-colors">Terms of Service</span>
+        <p style={{ 
+          textAlign: 'center', 
+          color: '#6B7280', 
+          fontSize: '0.75rem', 
+          marginTop: '2rem' 
+        }}>
+          By signing up, you agree to our Terms of Service
         </p>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        input::placeholder {
+          color: #6B7280;
+        }
+      `}</style>
     </div>
   );
 };
