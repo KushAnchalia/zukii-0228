@@ -90,17 +90,26 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const vapiRef = useRef<Vapi | null>(null);
+  const callStatusRef = useRef<CallStatus>('idle'); // Track status in ref for event handlers
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    callStatusRef.current = callStatus;
+  }, [callStatus]);
   
   // Initialize Vapi instance
   useEffect(() => {
+    console.log('[VAPI] Initializing with public key...');
     vapiRef.current = new Vapi(VAPI_PUBLIC_KEY);
     
     const vapi = vapiRef.current;
     
     // Call started event
     vapi.on('call-start', () => {
+      console.log('[VAPI] Event: call-start - Setting status to connected');
       setCallStatus('connected');
       setErrorMessage(null);
+      toast.dismiss('vapi-connecting');
       toast.success('Call connected!', {
         description: 'You can now speak with your AI agent.',
         icon: '🎤',
@@ -109,6 +118,7 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
     
     // Call ended event
     vapi.on('call-end', () => {
+      console.log('[VAPI] Event: call-end');
       setCallStatus('ended');
       setTimeout(() => setCallStatus('idle'), 2000);
       toast.info('Call ended', {
@@ -119,24 +129,33 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
     
     // Speech start event (AI is speaking)
     vapi.on('speech-start', () => {
+      console.log('[VAPI] Event: speech-start - AI is speaking');
       setCallStatus('speaking');
     });
     
     // Speech end event (AI finished speaking)
     vapi.on('speech-end', () => {
+      console.log('[VAPI] Event: speech-end - Now listening');
       setCallStatus('listening');
     });
     
     // Volume level event
     vapi.on('volume-level', (volume: number) => {
       setVolumeLevel(volume);
+      // If we're receiving volume data and still showing 'connecting', force update to connected
+      if (callStatusRef.current === 'connecting') {
+        console.log('[VAPI] Volume received while connecting - forcing status to connected');
+        setCallStatus('connected');
+        toast.dismiss('vapi-connecting');
+      }
     });
     
     // Error event
     vapi.on('error', (error: Error) => {
-      console.error('VAPI Error:', error);
+      console.error('[VAPI] Error:', error);
       setCallStatus('error');
       setErrorMessage(error.message || 'An error occurred during the call');
+      toast.dismiss('vapi-connecting');
       toast.error('Call Error', {
         description: error.message || 'Failed to connect to voice agent',
         icon: '❌',
@@ -145,11 +164,18 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
     
     // Message event for transcripts and function calls
     vapi.on('message', (message: unknown) => {
-      console.log('VAPI Message:', message);
+      console.log('[VAPI] Message:', message);
+      // If we receive any message while connecting, we're likely connected
+      if (callStatusRef.current === 'connecting') {
+        console.log('[VAPI] Message received while connecting - forcing status to connected');
+        setCallStatus('connected');
+        toast.dismiss('vapi-connecting');
+      }
     });
     
     // Cleanup on unmount
     return () => {
+      console.log('[VAPI] Cleanup - stopping call');
       if (vapiRef.current) {
         vapiRef.current.stop();
       }
@@ -158,17 +184,35 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
   
   // Start call
   const handleStartCall = useCallback(async () => {
-    if (!vapiRef.current || !agentId) return;
+    if (!vapiRef.current || !agentId) {
+      console.error('[VAPI] Cannot start call - missing vapi instance or agentId');
+      return;
+    }
     
     try {
+      console.log('[VAPI] Starting call with agentId:', agentId);
       setCallStatus('connecting');
       setErrorMessage(null);
       toast.loading('Connecting to voice agent...', { id: 'vapi-connecting' });
       
       await vapiRef.current.start(agentId);
-      toast.dismiss('vapi-connecting');
+      console.log('[VAPI] start() promise resolved');
+      
+      // If status is still connecting after promise resolves, update to connected
+      // The call-start event should have fired, but this is a fallback
+      setTimeout(() => {
+        if (callStatusRef.current === 'connecting') {
+          console.log('[VAPI] Still connecting after start() resolved - forcing connected status');
+          setCallStatus('connected');
+          toast.dismiss('vapi-connecting');
+          toast.success('Call connected!', {
+            description: 'You can now speak with your AI agent.',
+            icon: '🎤',
+          });
+        }
+      }, 1000);
     } catch (error) {
-      console.error('Failed to start call:', error);
+      console.error('[VAPI] Failed to start call:', error);
       setCallStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to start call');
       toast.dismiss('vapi-connecting');
@@ -190,21 +234,21 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
   const getStatusInfo = () => {
     switch (callStatus) {
       case 'idle':
-        return { label: 'Ready', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+        return { label: 'Ready', subtitle: 'Click to start', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
       case 'connecting':
-        return { label: 'Connecting...', color: 'text-amber-400', bgColor: 'bg-amber-500/20' };
+        return { label: 'Connecting...', subtitle: 'Please wait', color: 'text-amber-400', bgColor: 'bg-amber-500/20' };
       case 'connected':
-        return { label: 'Connected', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' };
+        return { label: 'Connected', subtitle: 'Speak now', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' };
       case 'speaking':
-        return { label: 'AI Speaking', color: 'text-violet-400', bgColor: 'bg-violet-500/20' };
+        return { label: 'AI Speaking', subtitle: 'Listen...', color: 'text-violet-400', bgColor: 'bg-violet-500/20' };
       case 'listening':
-        return { label: 'Listening...', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' };
+        return { label: 'Listening', subtitle: 'Speak now', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' };
       case 'ended':
-        return { label: 'Call Ended', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+        return { label: 'Call Ended', subtitle: 'Session complete', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
       case 'error':
-        return { label: 'Error', color: 'text-rose-400', bgColor: 'bg-rose-500/20' };
+        return { label: 'Error', subtitle: 'Try again', color: 'text-rose-400', bgColor: 'bg-rose-500/20' };
       default:
-        return { label: 'Unknown', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+        return { label: 'Unknown', subtitle: '', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
     }
   };
   
@@ -235,7 +279,8 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${statusInfo.bgColor.replace('/20', '')}`} />
               </span>
             )}
-            {statusInfo.label}
+            <span>{statusInfo.label}</span>
+            {statusInfo.subtitle && <span className="opacity-70">• {statusInfo.subtitle}</span>}
           </div>
         </div>
 
@@ -556,14 +601,28 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
   };
 
   const handleOpenTestPage = () => {
-    // Use data URI instead of blob URL to avoid "Not allowed to load local resource" errors
     const html = generateTestHtml();
-    const dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-    window.open(dataUri, '_blank', 'width=500,height=700,menubar=no,toolbar=no');
-    toast.success('Test page opened!', {
-      description: 'Allow microphone access to start talking',
-      icon: '🎤',
-    });
+    
+    // Use window.open with about:blank first, then write HTML content
+    // This approach avoids popup blocker issues with data URIs
+    const newWindow = window.open('', '_blank', 'width=500,height=700,menubar=no,toolbar=no,scrollbars=yes');
+    
+    if (newWindow) {
+      newWindow.document.open();
+      newWindow.document.write(html);
+      newWindow.document.close();
+      toast.success('Test page opened!', {
+        description: 'Allow microphone access to start talking',
+        icon: '🎤',
+      });
+    } else {
+      // Popup was blocked
+      toast.error('Popup blocked!', {
+        description: 'Please allow popups for this site and try again, or use the Download option instead.',
+        icon: '🚫',
+        duration: 5000,
+      });
+    }
   };
 
   const handleDownloadTestHtml = () => {
