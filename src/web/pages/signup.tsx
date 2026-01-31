@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/store';
 import AnimatedBackground from '@/components/animated-background';
 
@@ -14,14 +13,27 @@ const Signup = () => {
   const [error, setError] = useState('');
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    setLocation('/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate fields
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -51,7 +63,7 @@ const Signup = () => {
           >
             <img
               src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-              alt="Zukii"
+              alt="Zukii Logo"
               className="h-16 w-auto logo-glow"
             />
             <span className="text-3xl font-bold text-white font-display gradient-text">Zukii</span>
@@ -59,7 +71,7 @@ const Signup = () => {
         </div>
 
         {/* Card with glassmorphism */}
-        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up stagger-1 opacity-0">
+        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2 font-display">
               Create your <span className="gradient-text">account</span>
@@ -80,57 +92,56 @@ const Signup = () => {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+              <label htmlFor="signup-name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                 <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 Full Name
               </label>
-              <Input
-                id="name"
+              <input
+                id="signup-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-                required
-                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
+                autoComplete="name"
+                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+              <label htmlFor="signup-email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                 <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Email
               </label>
-              <Input
-                id="email"
+              <input
+                id="signup-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                required
-                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
+                autoComplete="email"
+                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+              <label htmlFor="signup-password" className="text-sm font-medium text-gray-300 flex items-center gap-2">
                 <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 Password
               </label>
-              <Input
-                id="password"
+              <input
+                id="signup-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                required
-                minLength={8}
-                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
+                autoComplete="new-password"
+                className="w-full h-12 px-4 bg-[rgba(45,35,70,0.3)] border border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 rounded-xl input-focus focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
               />
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                 <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,23 +178,20 @@ const Signup = () => {
           <div className="mt-8 text-center">
             <p className="text-gray-400 text-sm">
               Already have an account?{' '}
-              <a
-                href="/login"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setLocation('/login');
-                }}
+              <button
+                type="button"
+                onClick={() => setLocation('/login')}
                 className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors relative group"
               >
                 Sign in
                 <span className="absolute inset-x-0 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
+              </button>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-xs mt-8 animate-fade-in-up stagger-2 opacity-0">
+        <p className="text-center text-gray-500 text-xs mt-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           By signing up, you agree to our{' '}
           <span className="text-violet-400 hover:text-violet-300 cursor-pointer transition-colors">Terms of Service</span>
         </p>

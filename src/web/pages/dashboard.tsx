@@ -98,7 +98,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLocation('/')}>
               <img
                 src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt="Zukii"
+                alt=""
                 className="h-9 w-auto logo-glow"
               />
               <span className="text-xl font-bold text-white font-display gradient-text">Zukii</span>

@@ -93,7 +93,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           {/* Main logo */}
           <img
             src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-            alt="Zukii"
+            alt=""
             className="relative h-24 w-auto"
             style={{
               filter: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.5))',

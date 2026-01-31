@@ -357,7 +357,7 @@ const Landing = () => {
             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setLocation('/')}>
               <img
                 src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt="Zukii"
+                alt=""
                 className="h-9 w-auto logo-glow group-hover:scale-110 transition-transform"
               />
               <span className="text-xl font-bold text-white font-display gradient-text">Zukii</span>
@@ -776,7 +776,7 @@ const Landing = () => {
             >
               <img
                 src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt="Zukii"
+                alt=""
                 className="h-10 w-auto opacity-70 group-hover:opacity-100 transition-opacity"
               />
               <span className="text-xl font-bold text-white/70 font-display group-hover:text-white transition-colors">Zukii</span>
