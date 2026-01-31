@@ -33,8 +33,8 @@ const Index = () => {
             <img
               src="./zukii-brand-logo.png"
               alt="Zukii"
-              className="h-32 w-auto animate-glow-pulse"
-              style={{ filter: 'drop-shadow(0 0 25px rgba(59, 130, 246, 0.5))' }}
+              className="h-[150px] w-auto animate-glow-pulse"
+              style={{ filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.5))' }}
             />
           </div>
           <div className="flex items-center justify-center gap-3 text-gray-400">

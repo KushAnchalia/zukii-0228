@@ -85,7 +85,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           <img
             src="./zukii-brand-logo.png"
             alt=""
-            className="absolute inset-0 h-44 w-auto blur-xl opacity-40"
+            className="absolute inset-0 h-[250px] w-auto blur-xl opacity-40"
             style={{
               animation: phase === 'hold' ? 'splash-logo-glow 2s ease-in-out infinite' : 'none',
             }}
@@ -94,9 +94,9 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           <img
             src="./zukii-brand-logo.png"
             alt="Zukii"
-            className="relative h-44 w-auto"
+            className="relative h-[250px] w-auto"
             style={{
-              filter: 'drop-shadow(0 0 40px rgba(59, 130, 246, 0.6))',
+              filter: 'drop-shadow(0 0 50px rgba(59, 130, 246, 0.6))',
             }}
           />
         </div>

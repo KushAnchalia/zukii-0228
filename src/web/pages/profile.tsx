@@ -104,7 +104,7 @@ const Profile = () => {
       {/* Navigation */}
       <nav className="nav-glass sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-24">
             {/* Back Button */}
             <button
               onClick={() => setLocation('/dashboard')}
@@ -126,8 +126,8 @@ const Profile = () => {
               <img
                 src="./zukii-brand-logo.png"
                 alt="Zukii"
-                className="h-12 w-auto"
-                style={{ filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.5))' }}
+                className="h-20 md:h-[85px] w-auto"
+                style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))' }}
               />
             </div>
           </div>

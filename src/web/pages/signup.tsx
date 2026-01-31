@@ -126,9 +126,9 @@ const Signup = () => {
             src="./zukii-brand-logo.png"
             alt="Zukii Logo"
             style={{ 
-              height: '140px', 
+              height: '200px', 
               width: 'auto',
-              filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
+              filter: 'drop-shadow(0 0 25px rgba(59, 130, 246, 0.5))'
             }}
           />
         </div>

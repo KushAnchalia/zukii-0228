@@ -353,13 +353,13 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="nav-glass fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-24">
             <div className="flex items-center cursor-pointer group" onClick={() => setLocation('/')}>
               <img
                 src="./zukii-brand-logo.png"
                 alt="Zukii"
-                className="h-14 w-auto group-hover:scale-105 transition-transform"
-                style={{ filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.5))' }}
+                className="h-20 md:h-[85px] w-auto group-hover:scale-105 transition-transform"
+                style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))' }}
               />
             </div>
 
@@ -777,8 +777,8 @@ const Landing = () => {
               <img
                 src="./zukii-brand-logo.png"
                 alt="Zukii"
-                className="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.4))' }}
+                className="h-[70px] w-auto opacity-80 group-hover:opacity-100 transition-opacity"
+                style={{ filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.4))' }}
               />
             </div>
 
