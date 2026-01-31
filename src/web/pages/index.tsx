@@ -1,6 +1,7 @@
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/store';
 import { useEffect } from 'react';
+import AnimatedBackground from '@/components/animated-background';
 
 const Index = () => {
   const [, setLocation] = useLocation();
@@ -16,19 +17,22 @@ const Index = () => {
 
   // Show a brief loading state while redirecting
   return (
-    <div className="min-h-screen bg-[#0F0D1A] flex items-center justify-center">
-      <div className="text-center animate-fade-in">
-        <img
-          src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-          alt="Chugli.ai"
-          className="h-24 w-auto mx-auto mb-6 animate-pulse-glow"
-        />
-        <div className="flex items-center justify-center gap-2 text-gray-400">
-          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          <span>Loading...</span>
+    <div className="min-h-screen bg-[#050208] flex items-center justify-center relative overflow-hidden">
+      <AnimatedBackground />
+      
+      <div className="text-center relative z-10 animate-fade-in">
+        <div className="relative">
+          <img
+            src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
+            alt="Chugli.ai"
+            className="h-28 w-auto mx-auto mb-8 animate-glow-pulse logo-glow"
+          />
+        </div>
+        <div className="flex items-center justify-center gap-3 text-gray-400">
+          <div className="relative">
+            <div className="w-5 h-5 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+          </div>
+          <span className="text-sm font-medium">Loading your workspace...</span>
         </div>
       </div>
     </div>

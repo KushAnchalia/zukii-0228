@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/lib/store';
+import AnimatedBackground from '@/components/animated-background';
 
 const Signup = () => {
   const [, setLocation] = useLocation();
@@ -38,39 +39,47 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0D1A] flex items-center justify-center p-4">
-      {/* Ambient background glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 right-1/3 w-96 h-96 bg-violet-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/3 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px]" />
-      </div>
+    <div className="min-h-screen bg-[#050208] flex items-center justify-center p-4 relative overflow-hidden">
+      <AnimatedBackground />
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-            alt="Chugli.ai"
-            className="h-20 w-auto"
-          />
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo with glow */}
+        <div className="flex justify-center mb-10 animate-fade-in-up">
+          <div className="relative">
+            <img
+              src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
+              alt="Chugli.ai"
+              className="h-20 w-auto logo-glow"
+            />
+          </div>
         </div>
 
-        {/* Card */}
-        <div className="bg-[#1A1625] border border-[#252136] rounded-2xl p-8 shadow-2xl">
+        {/* Card with glassmorphism */}
+        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up stagger-1 opacity-0">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
+            <h1 className="text-3xl font-bold text-white mb-2 font-display">
+              Create your <span className="gradient-text">account</span>
+            </h1>
             <p className="text-gray-400 text-sm">Start building voice AI agents today</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm text-center">
-                {error}
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 text-rose-400 text-sm text-center backdrop-blur-sm animate-scale-in">
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {error}
+                </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-gray-300">
+              <label htmlFor="name" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
                 Full Name
               </label>
               <Input
@@ -80,12 +89,15 @@ const Signup = () => {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
                 required
-                className="bg-[#252136] border-[#363050] text-white placeholder:text-gray-500 h-12 input-focus"
+                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
                 Email
               </label>
               <Input
@@ -95,12 +107,15 @@ const Signup = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="bg-[#252136] border-[#363050] text-white placeholder:text-gray-500 h-12 input-focus"
+                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
                 Password
               </label>
               <Input
@@ -111,15 +126,20 @@ const Signup = () => {
                 placeholder="••••••••"
                 required
                 minLength={8}
-                className="bg-[#252136] border-[#363050] text-white placeholder:text-gray-500 h-12 input-focus"
+                className="bg-[rgba(45,35,70,0.3)] border-[rgba(139,92,246,0.2)] text-white placeholder:text-gray-500 h-12 rounded-xl input-focus"
               />
-              <p className="text-xs text-gray-500">Minimum 8 characters</p>
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Minimum 8 characters
+              </p>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 btn-gradient text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-12 btn-gradient text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
             >
               {isLoading ? (
                 <>
@@ -130,12 +150,17 @@ const Signup = () => {
                   Creating account...
                 </>
               ) : (
-                'Create Account'
+                <>
+                  Create Account
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <p className="text-gray-400 text-sm">
               Already have an account?{' '}
               <a
@@ -144,17 +169,19 @@ const Signup = () => {
                   e.preventDefault();
                   setLocation('/login');
                 }}
-                className="text-[#A78BFA] hover:text-[#C4B5FD] font-medium transition-colors"
+                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors relative group"
               >
                 Sign in
+                <span className="absolute inset-x-0 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </a>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-xs mt-6">
-          By signing up, you agree to our Terms of Service
+        <p className="text-center text-gray-500 text-xs mt-8 animate-fade-in-up stagger-2 opacity-0">
+          By signing up, you agree to our{' '}
+          <span className="text-violet-400 hover:text-violet-300 cursor-pointer transition-colors">Terms of Service</span>
         </p>
       </div>
     </div>
