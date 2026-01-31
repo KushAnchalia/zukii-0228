@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,162 @@ const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
         <span className={`status-dot ${dotClass}`} />
       )}
       {label}
+    </div>
+  );
+};
+
+interface ProfileDropdownProps {
+  user: { name: string; email: string; avatar?: string } | null;
+  onLogout: () => void;
+  onNavigate: (path: string) => void;
+}
+
+const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Close dropdown on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Avatar Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative group focus:outline-none"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 p-[2px] cursor-pointer transition-transform hover:scale-105">
+          <div className="w-full h-full rounded-full bg-[#0a0612] flex items-center justify-center text-white font-bold text-sm">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              userInitial
+            )}
+          </div>
+        </div>
+        {/* Glow effect on hover */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+      </button>
+
+      {/* Dropdown Menu */}
+      <div
+        className={`
+          absolute right-0 mt-2 w-72 origin-top-right
+          transition-all duration-200 ease-out
+          ${isOpen 
+            ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
+            : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+          }
+        `}
+      >
+        <div className="bg-[rgba(20,15,35,0.95)] backdrop-blur-xl border border-[rgba(139,92,246,0.3)] rounded-2xl shadow-2xl shadow-violet-500/10 overflow-hidden">
+          {/* User Info Section */}
+          <div className="px-4 py-4 border-b border-[rgba(139,92,246,0.2)]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 p-[2px] flex-shrink-0">
+                <div className="w-full h-full rounded-full bg-[#0a0612] flex items-center justify-center text-white font-bold text-lg">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    userInitial
+                  )}
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-white font-semibold truncate">{user?.name}</p>
+                <p className="text-gray-400 text-sm truncate">{user?.email}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Menu Items */}
+          <div className="py-2">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onNavigate('/profile');
+              }}
+              className="w-full px-4 py-3 flex items-center gap-3 text-gray-300 hover:text-white hover:bg-violet-500/10 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <span className="font-medium">My Profile</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onNavigate('/profile');
+              }}
+              className="w-full px-4 py-3 flex items-center gap-3 text-gray-300 hover:text-white hover:bg-violet-500/10 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span className="font-medium">Settings</span>
+            </button>
+          </div>
+
+          {/* Logout Section */}
+          <div className="border-t border-[rgba(139,92,246,0.2)] py-2">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onLogout();
+              }}
+              className="w-full px-4 py-3 flex items-center gap-3 text-gray-300 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -109,20 +265,11 @@ const Dashboard = () => {
               <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
                 <span>{user?.email}</span>
               </div>
-              <div className="relative group">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 p-[2px] cursor-pointer">
-                  <div className="w-full h-full rounded-full bg-[#0a0612] flex items-center justify-center text-white font-bold text-sm">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </div>
-                </div>
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 blur-md opacity-0 group-hover:opacity-50 transition-opacity" />
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-white/5"
-              >
-                Logout
-              </button>
+              <ProfileDropdown 
+                user={user}
+                onLogout={handleLogout}
+                onNavigate={setLocation}
+              />
             </div>
           </div>
         </div>

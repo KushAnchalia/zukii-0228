@@ -7,6 +7,7 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
 }
 
@@ -41,6 +42,18 @@ export const useAuth = create<AuthState>()(
           id: '1',
           name,
           email,
+        };
+        set({ user, isAuthenticated: true });
+        return true;
+      },
+      loginWithGoogle: async () => {
+        // Simulate Google OAuth API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const user: User = {
+          id: 'google-' + Date.now(),
+          name: 'Google User',
+          email: 'user@gmail.com',
+          avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
         };
         set({ user, isAuthenticated: true });
         return true;
