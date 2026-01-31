@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { useAuth, useWebsites } from '@/lib/store';
 import type { WebsiteStatus } from '@/lib/types';
@@ -6,6 +6,10 @@ import { fetchWebsite } from '@/lib/api';
 import { mapAPIStatus } from '@/lib/types';
 import { toast } from 'sonner';
 import AnimatedBackground from '@/components/animated-background';
+import Vapi from '@vapi-ai/web';
+
+// VAPI Public Key - Replace with actual key from env or config
+const VAPI_PUBLIC_KEY = '4dc6866b-07dd-4b5b-9e59-8dfbccaab172';
 
 const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
   const config = {
@@ -77,6 +81,81 @@ interface Agent {
   vapiAgentId?: string;
 }
 
+// Voice Widget Component - Floating button that appears when demo is active
+const VoiceWidget = ({ 
+  isActive, 
+  isSpeaking, 
+  isListening,
+  onToggle,
+  volumeLevel 
+}: { 
+  isActive: boolean;
+  isSpeaking: boolean;
+  isListening: boolean;
+  onToggle: () => void;
+  volumeLevel: number;
+}) => {
+  if (!isActive) return null;
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100]">
+      {/* Ripple effects when speaking */}
+      {isSpeaking && (
+        <>
+          <div 
+            className="absolute inset-0 rounded-full bg-violet-500/30 animate-ping"
+            style={{ animationDuration: '1.5s' }}
+          />
+          <div 
+            className="absolute inset-0 rounded-full bg-fuchsia-500/20 animate-ping"
+            style={{ animationDuration: '2s', animationDelay: '0.5s' }}
+          />
+        </>
+      )}
+      
+      {/* Main button */}
+      <button
+        onClick={onToggle}
+        className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
+          isListening 
+            ? 'bg-gradient-to-br from-rose-500 to-pink-600 shadow-rose-500/50' 
+            : isSpeaking
+              ? 'bg-gradient-to-br from-cyan-500 to-violet-600 shadow-cyan-500/50'
+              : 'bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-violet-500/50'
+        }`}
+        style={{
+          transform: isSpeaking ? `scale(${1 + volumeLevel * 0.2})` : 'scale(1)',
+        }}
+      >
+        {isListening ? (
+          // Listening icon - animated mic
+          <svg className="w-8 h-8 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+          </svg>
+        ) : (
+          // Speaking or idle icon
+          <svg className={`w-8 h-8 text-white ${isSpeaking ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Status text */}
+      <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
+        <div className={`px-3 py-1.5 rounded-full text-xs font-medium ${
+          isListening 
+            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+            : isSpeaking
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+              : 'bg-violet-500/20 text-violet-300 border border-violet-500/40'
+        }`}>
+          {isListening ? 'Listening...' : isSpeaking ? 'Speaking...' : 'Click to talk'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AgentDetails = () => {
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
@@ -86,8 +165,18 @@ const AgentDetails = () => {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // VAPI state
   const [demoActive, setDemoActive] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState(0);
+  const [callActive, setCallActive] = useState(false);
+  
+  // VAPI instance ref
+  const vapiRef = useRef<Vapi | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -175,6 +264,87 @@ const AgentDetails = () => {
     return () => clearInterval(pollInterval);
   }, [agent, params.id]);
 
+  // Initialize VAPI instance
+  const initVapi = useCallback(() => {
+    if (vapiRef.current) return vapiRef.current;
+    
+    try {
+      const vapi = new Vapi(VAPI_PUBLIC_KEY);
+      
+      // Set up event listeners
+      vapi.on('call-start', () => {
+        console.log('VAPI: Call started');
+        setCallActive(true);
+        setDemoLoading(false);
+        setDemoActive(true);
+        toast.success('Voice agent connected!', {
+          description: 'Start speaking to interact with your AI agent.',
+          icon: '🎤',
+        });
+      });
+
+      vapi.on('call-end', () => {
+        console.log('VAPI: Call ended');
+        setCallActive(false);
+        setDemoActive(false);
+        setIsSpeaking(false);
+        setIsListening(false);
+        toast.info('Call ended', {
+          description: 'Voice agent disconnected.',
+          icon: '👋',
+        });
+      });
+
+      vapi.on('speech-start', () => {
+        console.log('VAPI: Speech started');
+        setIsSpeaking(true);
+        setIsListening(false);
+      });
+
+      vapi.on('speech-end', () => {
+        console.log('VAPI: Speech ended');
+        setIsSpeaking(false);
+      });
+
+      vapi.on('volume-level', (volume: number) => {
+        setVolumeLevel(volume);
+        // If volume is detected, user is likely speaking
+        if (volume > 0.1) {
+          setIsListening(true);
+          setIsSpeaking(false);
+        }
+      });
+
+      vapi.on('message', (message: unknown) => {
+        console.log('VAPI message:', message);
+      });
+
+      vapi.on('error', (err: Error) => {
+        console.error('VAPI error:', err);
+        setDemoLoading(false);
+        setDemoError(err.message || 'Failed to connect to voice agent');
+        toast.error('Voice agent error', {
+          description: err.message || 'Something went wrong. Please try again.',
+        });
+      });
+
+      vapiRef.current = vapi;
+      return vapi;
+    } catch (err) {
+      console.error('Failed to initialize VAPI:', err);
+      return null;
+    }
+  }, []);
+
+  // Cleanup VAPI on unmount
+  useEffect(() => {
+    return () => {
+      if (vapiRef.current && callActive) {
+        vapiRef.current.stop();
+      }
+    };
+  }, [callActive]);
+
   const handleCopyCode = async () => {
     if (!agent) return;
     
@@ -208,80 +378,56 @@ const AgentDetails = () => {
     }
   };
 
-  // Start live demo - inject VAPI widget
-  const handleStartDemo = () => {
+  // Start VAPI call
+  const handleStartDemo = async () => {
     if (!agent?.vapiAgentId) {
-      toast.error('No agent ID available for demo');
+      toast.error('No agent ID available', {
+        description: 'This agent is not configured for voice demos.',
+      });
       return;
     }
 
     setDemoLoading(true);
+    setDemoError(null);
 
-    // Remove any existing VAPI widget scripts first
-    const existingScripts = document.querySelectorAll('script[src*="vapi.ai"]');
-    existingScripts.forEach(script => script.remove());
-
-    // Remove existing widget containers
-    const existingWidgets = document.querySelectorAll('[data-vapi-widget]');
-    existingWidgets.forEach(widget => widget.remove());
-
-    // Create and inject the VAPI widget script
-    const script = document.createElement('script');
-    script.src = 'https://cdn.vapi.ai/widget.js';
-    script.setAttribute('data-assistant-id', agent.vapiAgentId);
-    script.setAttribute('data-vapi-widget', 'true');
-    
-    script.onload = () => {
-      setDemoLoading(false);
-      setDemoActive(true);
-      toast.success('Voice agent loaded!', {
-        description: 'Look for the widget in the bottom right corner.',
-        icon: '🎤',
-      });
-    };
-
-    script.onerror = () => {
-      setDemoLoading(false);
-      toast.error('Failed to load voice widget', {
-        description: 'Please try again later.',
-      });
-    };
-
-    document.body.appendChild(script);
-  };
-
-  // Stop live demo - remove VAPI widget
-  const handleStopDemo = () => {
-    // Remove VAPI widget scripts
-    const scripts = document.querySelectorAll('script[src*="vapi.ai"]');
-    scripts.forEach(script => script.remove());
-
-    // Remove widget containers/buttons that VAPI creates
-    const widgets = document.querySelectorAll('[data-vapi-widget], .vapi-widget, .vapi-btn, [class*="vapi"]');
-    widgets.forEach(widget => widget.remove());
-
-    // Also try to find any iframe or floating button VAPI might create
-    const iframes = document.querySelectorAll('iframe[src*="vapi"]');
-    iframes.forEach(iframe => iframe.remove());
-
-    setDemoActive(false);
-    toast.info('Demo stopped', {
-      description: 'The voice widget has been removed.',
-      icon: '👋',
-    });
-  };
-
-  // Cleanup demo on unmount
-  useEffect(() => {
-    return () => {
-      if (demoActive) {
-        const scripts = document.querySelectorAll('script[src*="vapi.ai"]');
-        scripts.forEach(script => script.remove());
-        const widgets = document.querySelectorAll('[data-vapi-widget], .vapi-widget, .vapi-btn, [class*="vapi"]');
-        widgets.forEach(widget => widget.remove());
+    try {
+      const vapi = initVapi();
+      if (!vapi) {
+        throw new Error('Failed to initialize voice SDK');
       }
-    };
-  }, [demoActive]);
+
+      console.log('Starting VAPI call with assistant:', agent.vapiAgentId);
+      await vapi.start(agent.vapiAgentId);
+    } catch (err) {
+      console.error('Failed to start demo:', err);
+      setDemoLoading(false);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setDemoError(errorMessage);
+      toast.error('Failed to start voice agent', {
+        description: errorMessage,
+      });
+    }
+  };
+
+  // Stop VAPI call
+  const handleStopDemo = () => {
+    if (vapiRef.current) {
+      vapiRef.current.stop();
+    }
+    setDemoActive(false);
+    setCallActive(false);
+    setIsSpeaking(false);
+    setIsListening(false);
+  };
+
+  // Toggle call (for the floating widget)
+  const handleToggleCall = () => {
+    if (callActive) {
+      handleStopDemo();
+    } else {
+      handleStartDemo();
+    }
+  };
 
   if (!isAuthenticated) {
     return null;
@@ -345,6 +491,15 @@ const AgentDetails = () => {
     <div className="min-h-screen bg-[#050208] relative overflow-hidden">
       <AnimatedBackground />
 
+      {/* Voice Widget - Floating button */}
+      <VoiceWidget 
+        isActive={demoActive}
+        isSpeaking={isSpeaking}
+        isListening={isListening}
+        onToggle={handleToggleCall}
+        volumeLevel={volumeLevel}
+      />
+
       {/* Navigation */}
       <nav className="nav-glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -375,28 +530,25 @@ const AgentDetails = () => {
         </button>
 
         {/* Agent Header */}
-        <div className="glass-card gradient-border rounded-3xl p-8 mb-6 animate-fade-in-up">
+        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-3 font-display">{agent.websiteName}</h1>
-              <a
-                href={agent.websiteUrl}
-                target="_blank"
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 font-display">{agent.websiteName}</h1>
+              <a 
+                href={agent.websiteUrl} 
+                target="_blank" 
                 rel="noopener noreferrer"
-                className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors inline-flex items-center gap-2 group"
+                className="text-gray-400 hover:text-violet-400 transition-colors text-sm inline-flex items-center gap-1 group"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
                 {agent.websiteUrl}
-                <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
             </div>
             <StatusBadge status={agent.status} />
           </div>
-          
+
           {/* Agent ID Info */}
           {agent.vapiAgentId && (
             <div className="mt-4 pt-4 border-t border-violet-500/20">
@@ -408,7 +560,7 @@ const AgentDetails = () => {
         </div>
 
         {/* Embed Code Section */}
-        <div className="glass-card gradient-border rounded-3xl p-8 animate-fade-in-up stagger-1 opacity-0">
+        <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-1 opacity-0">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white font-display flex items-center gap-2">
               <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,13 +669,13 @@ const AgentDetails = () => {
                 {demoActive && (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-medium">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Widget Active
+                    {isListening ? 'Listening' : isSpeaking ? 'Speaking' : 'Connected'}
                   </div>
                 )}
               </div>
 
               <p className="text-gray-400 text-sm mb-6">
-                Try your voice agent right here! Click the button below to start a conversation.
+                Try your voice agent right here! Click the button below to start a conversation with your AI assistant.
               </p>
 
               {/* Voice Wave Animation */}
@@ -538,11 +690,27 @@ const AgentDetails = () => {
                       style={{
                         animationDelay: `${i * 0.1}s`,
                         height: demoActive ? undefined : '8px',
+                        transform: isSpeaking ? `scaleY(${1 + volumeLevel * 3})` : undefined,
                       }}
                     />
                   ))}
                 </div>
               </div>
+
+              {/* Error Message */}
+              {demoError && (
+                <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-rose-400 font-medium text-sm">Failed to start voice agent</p>
+                      <p className="text-rose-400/70 text-xs mt-1">{demoError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Demo Controls */}
               <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
@@ -565,7 +733,7 @@ const AgentDetails = () => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Loading Widget...
+                          Connecting...
                         </>
                       ) : (
                         <>
@@ -587,18 +755,31 @@ const AgentDetails = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                       </svg>
-                      Stop Demo
+                      End Call
                     </div>
                   </button>
                 )}
               </div>
 
-              {/* Hint arrow pointing to bottom right */}
+              {/* Instructions when active */}
               {demoActive && (
-                <div className="mt-6 flex items-center justify-end gap-2 text-gray-400 text-sm animate-bounce">
-                  <span>Widget appears here</span>
-                  <svg className="w-5 h-5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <div className="mt-6 text-center">
+                  <p className="text-gray-400 text-sm">
+                    {isListening 
+                      ? '🎤 Speak now - your agent is listening...'
+                      : isSpeaking 
+                        ? '🔊 Your agent is responding...'
+                        : '💬 Say something to start the conversation'}
+                  </p>
+                </div>
+              )}
+
+              {/* Floating widget hint */}
+              {demoActive && (
+                <div className="mt-6 flex items-center justify-center gap-2 text-gray-500 text-xs">
+                  <span>You can also use the floating widget</span>
+                  <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                   </svg>
                 </div>
               )}
@@ -646,6 +827,17 @@ const AgentDetails = () => {
           </p>
         </div>
       </main>
+
+      {/* Custom styles for animations */}
+      <style>{`
+        @keyframes sound-wave {
+          0%, 100% { height: 8px; }
+          50% { height: 32px; }
+        }
+        .animate-sound-wave {
+          animation: sound-wave 0.6s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
