@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, Website, Agent } from './types';
+import { mapAPIStatus } from './types';
+import { fetchWebsites, createWebsite, fetchWebsite, deleteWebsite, type APIWebsite } from './api';
 
 interface AuthState {
   user: User | null;
@@ -12,12 +14,28 @@ interface AuthState {
 
 interface WebsiteState {
   websites: Website[];
-  addWebsite: (name: string, url: string) => void;
-  updateWebsiteStatus: (id: string, status: Website['status']) => void;
+  isLoading: boolean;
+  error: string | null;
+  fetchAllWebsites: () => Promise<void>;
+  addWebsite: (name: string, url: string) => Promise<Website | null>;
+  refreshWebsite: (id: string) => Promise<void>;
+  removeWebsite: (id: string) => Promise<void>;
   getAgent: (websiteId: string) => Agent | null;
+  clearError: () => void;
 }
 
-// Mock auth store
+// Convert API response to frontend Website type
+const mapAPIWebsiteToWebsite = (apiWebsite: APIWebsite): Website => ({
+  id: apiWebsite.id,
+  name: apiWebsite.name || new URL(apiWebsite.url).hostname,
+  url: apiWebsite.url,
+  status: mapAPIStatus(apiWebsite.status),
+  createdAt: apiWebsite.created_at,
+  vapiAgentId: apiWebsite.vapi_agent_id,
+  embedCode: apiWebsite.embed_code,
+});
+
+// Auth store
 export const useAuth = create<AuthState>()(
   persist(
     (set) => ({
@@ -55,61 +73,84 @@ export const useAuth = create<AuthState>()(
   )
 );
 
-// Mock website store
-export const useWebsites = create<WebsiteState>()(
-  persist(
-    (set, get) => ({
-      websites: [],
-      addWebsite: (name: string, url: string) => {
-        const newWebsite: Website = {
-          id: Date.now().toString(),
-          name,
-          url,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        };
-        set(state => ({ websites: [...state.websites, newWebsite] }));
-        
-        // Simulate status changes
-        setTimeout(() => {
-          set(state => ({
-            websites: state.websites.map(w =>
-              w.id === newWebsite.id ? { ...w, status: 'scraping' as const } : w
-            )
-          }));
-        }, 2000);
-        
-        setTimeout(() => {
-          set(state => ({
-            websites: state.websites.map(w =>
-              w.id === newWebsite.id ? { ...w, status: 'ready' as const } : w
-            )
-          }));
-        }, 5000);
-      },
-      updateWebsiteStatus: (id: string, status: Website['status']) => {
-        set(state => ({
-          websites: state.websites.map(w =>
-            w.id === id ? { ...w, status } : w
-          )
-        }));
-      },
-      getAgent: (websiteId: string) => {
-        const website = get().websites.find(w => w.id === websiteId);
-        if (!website) return null;
-        
-        return {
-          id: `agent-${websiteId}`,
-          websiteId,
-          websiteName: website.name,
-          websiteUrl: website.url,
-          status: website.status,
-          embedCode: `<script src="https://zukii.ai/embed.js" data-agent-id="agent-${websiteId}"></script>`,
-        };
-      },
-    }),
-    {
-      name: 'zukii-websites',
+// Website store with real API integration
+export const useWebsites = create<WebsiteState>()((set, get) => ({
+  websites: [],
+  isLoading: false,
+  error: null,
+  
+  fetchAllWebsites: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const apiWebsites = await fetchWebsites();
+      const websites = apiWebsites.map(mapAPIWebsiteToWebsite);
+      set({ websites, isLoading: false });
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : 'Failed to fetch websites', 
+        isLoading: false 
+      });
     }
-  )
-);
+  },
+  
+  addWebsite: async (name: string, url: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const apiWebsite = await createWebsite(url, name);
+      const website = mapAPIWebsiteToWebsite(apiWebsite);
+      set(state => ({ 
+        websites: [...state.websites, website], 
+        isLoading: false 
+      }));
+      return website;
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : 'Failed to add website', 
+        isLoading: false 
+      });
+      return null;
+    }
+  },
+  
+  refreshWebsite: async (id: string) => {
+    try {
+      const apiWebsite = await fetchWebsite(id);
+      const website = mapAPIWebsiteToWebsite(apiWebsite);
+      set(state => ({
+        websites: state.websites.map(w => w.id === id ? website : w)
+      }));
+    } catch (err) {
+      console.error('Failed to refresh website:', err);
+    }
+  },
+  
+  removeWebsite: async (id: string) => {
+    try {
+      await deleteWebsite(id);
+      set(state => ({
+        websites: state.websites.filter(w => w.id !== id)
+      }));
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : 'Failed to delete website'
+      });
+    }
+  },
+  
+  getAgent: (websiteId: string) => {
+    const website = get().websites.find(w => w.id === websiteId);
+    if (!website) return null;
+    
+    return {
+      id: `agent-${websiteId}`,
+      websiteId,
+      websiteName: website.name,
+      websiteUrl: website.url,
+      status: website.status,
+      embedCode: website.embedCode || `<script src="https://zukii.ai/embed.js" data-agent-id="${website.vapiAgentId || websiteId}"></script>`,
+      vapiAgentId: website.vapiAgentId,
+    };
+  },
+  
+  clearError: () => set({ error: null }),
+}));

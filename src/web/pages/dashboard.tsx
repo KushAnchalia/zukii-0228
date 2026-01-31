@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useAuth, useWebsites } from '@/lib/store';
 import type { WebsiteStatus } from '@/lib/types';
+import { toast } from 'sonner';
 import AnimatedBackground from '@/components/animated-background';
 
 const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
@@ -34,7 +35,7 @@ const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
 
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${bgClass}`}>
-      {status === 'scraping' ? (
+      {status === 'scraping' || status === 'pending' ? (
         <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -47,6 +48,24 @@ const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
   );
 };
 
+// Skeleton loader for website cards
+const WebsiteCardSkeleton = () => (
+  <div className="website-card p-6 animate-pulse">
+    <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
+    <div className="flex items-start justify-between mb-4">
+      <div className="flex-1 min-w-0">
+        <div className="h-5 bg-violet-500/20 rounded w-3/4 mb-2" />
+        <div className="h-4 bg-violet-500/10 rounded w-1/2" />
+      </div>
+      <div className="h-7 bg-violet-500/20 rounded-full w-20" />
+    </div>
+    <div className="flex gap-3 mt-6">
+      <div className="flex-1 h-10 bg-violet-500/10 rounded-xl" />
+      <div className="h-10 w-10 bg-violet-500/10 rounded-xl" />
+    </div>
+  </div>
+);
+
 interface ProfileDropdownProps {
   user: { name: string; email: string; avatar?: string } | null;
   onLogout: () => void;
@@ -57,7 +76,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -74,7 +92,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
     };
   }, [isOpen]);
 
-  // Close dropdown on escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -95,7 +112,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Avatar Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative group focus:outline-none"
@@ -111,11 +127,9 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
             )}
           </div>
         </div>
-        {/* Glow effect on hover */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
       </button>
 
-      {/* Dropdown Menu */}
       <div
         className={`
           absolute right-0 mt-2 w-72 origin-top-right
@@ -127,7 +141,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
         `}
       >
         <div className="bg-[rgba(20,15,35,0.95)] backdrop-blur-xl border border-[rgba(139,92,246,0.3)] rounded-2xl shadow-2xl shadow-violet-500/10 overflow-hidden">
-          {/* User Info Section */}
           <div className="px-4 py-4 border-b border-[rgba(139,92,246,0.2)]">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 p-[2px] flex-shrink-0">
@@ -146,7 +159,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
             </div>
           </div>
 
-          {/* Menu Items */}
           <div className="py-2">
             <button
               onClick={() => {
@@ -180,7 +192,6 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
             </button>
           </div>
 
-          {/* Logout Section */}
           <div className="border-t border-[rgba(139,92,246,0.2)] py-2">
             <button
               onClick={() => {
@@ -206,41 +217,91 @@ const ProfileDropdown = ({ user, onLogout, onNavigate }: ProfileDropdownProps) =
 const Dashboard = () => {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
-  const { websites, addWebsite, updateWebsiteStatus } = useWebsites();
+  const { websites, isLoading, error, fetchAllWebsites, addWebsite, refreshWebsite, removeWebsite, clearError } = useWebsites();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [websiteName, setWebsiteName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Redirect if not authenticated
-  if (!isAuthenticated) {
-    setLocation('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocation('/login');
+    }
+  }, [isAuthenticated, setLocation]);
+
+  // Fetch websites on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAllWebsites();
+    }
+  }, [isAuthenticated, fetchAllWebsites]);
+
+  // Poll for pending websites
+  useEffect(() => {
+    const pendingWebsites = websites.filter(w => w.status === 'pending');
+    
+    if (pendingWebsites.length === 0) return;
+
+    const pollInterval = setInterval(() => {
+      pendingWebsites.forEach(website => {
+        refreshWebsite(website.id);
+      });
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [websites, refreshWebsite]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const handleAddWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    addWebsite(websiteName, websiteUrl);
+    const result = await addWebsite(websiteName, websiteUrl);
     
-    setWebsiteName('');
-    setWebsiteUrl('');
-    setIsModalOpen(false);
+    if (result) {
+      toast.success('Website added successfully!', {
+        description: 'We are now scraping your website content.',
+        icon: '🎉',
+      });
+      setWebsiteName('');
+      setWebsiteUrl('');
+      setIsModalOpen(false);
+    }
+    
     setIsAdding(false);
   };
 
-  const handleRescrape = (id: string) => {
-    updateWebsiteStatus(id, 'scraping');
-    setTimeout(() => updateWebsiteStatus(id, 'ready'), 3000);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchAllWebsites();
+    setIsRefreshing(false);
+    toast.success('Websites refreshed!');
+  }, [fetchAllWebsites]);
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this website?')) {
+      await removeWebsite(id);
+      toast.success('Website deleted');
+    }
   };
 
   const handleLogout = () => {
     logout();
     setLocation('/');
   };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#050208] relative overflow-hidden">
@@ -288,22 +349,40 @@ const Dashboard = () => {
               Manage your voice AI agents
             </p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="btn-gradient px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2 whitespace-nowrap group"
-          >
-            <svg className="w-5 h-5 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add Website
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="py-3 px-4 btn-secondary text-white font-medium rounded-xl flex items-center gap-2 disabled:opacity-50"
+            >
+              <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn-gradient px-6 py-3 rounded-xl text-white font-semibold flex items-center gap-2 whitespace-nowrap group"
+            >
+              <svg className="w-5 h-5 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Website
+            </button>
+          </div>
         </div>
 
-        {/* Websites Grid */}
-        {websites.length === 0 ? (
+        {/* Loading State */}
+        {isLoading && websites.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <WebsiteCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : websites.length === 0 ? (
+          /* Empty State */
           <div className="animate-fade-in-up stagger-1 opacity-0">
             <div className="glass-card gradient-border rounded-3xl p-12 text-center relative overflow-hidden">
-              {/* Decorative elements */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-b from-violet-500/10 to-transparent blur-3xl" />
               
               <div className="empty-state-icon w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 flex items-center justify-center relative">
@@ -327,7 +406,6 @@ const Dashboard = () => {
                 Add Your First Website
               </button>
 
-              {/* Decorative dots */}
               <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-500/30" />
@@ -336,13 +414,13 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
+          /* Websites Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {websites.map((website, index) => (
               <div
                 key={website.id}
                 className={`website-card p-6 animate-fade-in-up opacity-0 stagger-${Math.min(index + 1, 6)}`}
               >
-                {/* Card top accent line */}
                 <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
                 
                 <div className="flex items-start justify-between mb-4">
@@ -361,25 +439,46 @@ const Dashboard = () => {
                 </div>
 
                 <div className="flex gap-3 mt-6">
+                  {website.status === 'ready' ? (
+                    <button
+                      onClick={() => setLocation(`/agents/${website.id}`)}
+                      className="flex-1 py-2.5 px-4 btn-gradient text-white text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View Agent
+                    </button>
+                  ) : website.status === 'error' ? (
+                    <button
+                      onClick={() => handleDelete(website.id)}
+                      className="flex-1 py-2.5 px-4 bg-rose-500/20 border border-rose-500/30 text-rose-400 text-sm font-medium rounded-xl transition-all hover:bg-rose-500/30 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex-1 py-2.5 px-4 btn-secondary text-white text-sm font-medium rounded-xl transition-all opacity-40 cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </button>
+                  )}
                   <button
-                    onClick={() => setLocation(`/agents/${website.id}`)}
-                    disabled={website.status !== 'ready'}
-                    className="flex-1 py-2.5 px-4 btn-secondary text-white text-sm font-medium rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={() => handleDelete(website.id)}
+                    className="py-2.5 px-4 btn-icon rounded-xl hover:bg-rose-500/20 hover:border-rose-500/30 group"
+                    title="Delete website"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View Agent
-                  </button>
-                  <button
-                    onClick={() => handleRescrape(website.id)}
-                    disabled={website.status === 'scraping'}
-                    className="py-2.5 px-4 btn-icon rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Re-scrape website"
-                  >
-                    <svg className={`w-4 h-4 text-white ${website.status === 'scraping' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>

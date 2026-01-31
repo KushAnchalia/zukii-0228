@@ -5,7 +5,25 @@ export interface User {
   avatar?: string;
 }
 
+// Frontend status types (mapped from API)
 export type WebsiteStatus = 'pending' | 'scraping' | 'ready' | 'error';
+
+// API status types
+export type APIStatus = 'pending' | 'completed' | 'failed';
+
+// Map API status to frontend status
+export const mapAPIStatus = (apiStatus: APIStatus): WebsiteStatus => {
+  switch (apiStatus) {
+    case 'pending':
+      return 'pending';
+    case 'completed':
+      return 'ready';
+    case 'failed':
+      return 'error';
+    default:
+      return 'pending';
+  }
+};
 
 export interface Website {
   id: string;
@@ -13,6 +31,8 @@ export interface Website {
   url: string;
   status: WebsiteStatus;
   createdAt: string;
+  vapiAgentId?: string;
+  embedCode?: string;
 }
 
 export interface Agent {
@@ -22,4 +42,5 @@ export interface Agent {
   websiteUrl: string;
   status: WebsiteStatus;
   embedCode: string;
+  vapiAgentId?: string;
 }
