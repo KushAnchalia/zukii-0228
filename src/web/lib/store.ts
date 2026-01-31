@@ -47,16 +47,30 @@ export const useAuth = create<AuthState>()(
         return true;
       },
       loginWithGoogle: async () => {
-        // Simulate Google OAuth API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const user: User = {
-          id: 'google-' + Date.now(),
-          name: 'Google User',
-          email: 'user@gmail.com',
-          avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
-        };
-        set({ user, isAuthenticated: true });
-        return true;
+        try {
+          // Simulate Google OAuth API call with loading state
+          await new Promise(resolve => setTimeout(resolve, 1200));
+          
+          // Generate unique ID for this session
+          const timestamp = Date.now();
+          const randomSuffix = Math.random().toString(36).substring(2, 8);
+          
+          const user: User = {
+            id: `google-${timestamp}-${randomSuffix}`,
+            name: 'Google User',
+            email: 'googleuser@gmail.com',
+            avatar: `https://ui-avatars.com/api/?name=Google+User&background=4285F4&color=fff&bold=true`,
+          };
+          
+          // Update state with new user
+          set({ user, isAuthenticated: true });
+          
+          // Return success
+          return true;
+        } catch (error) {
+          console.error('Google login failed:', error);
+          return false;
+        }
       },
       logout: () => {
         set({ user: null, isAuthenticated: false });

@@ -63,19 +63,28 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isGoogleLoading || isLoading) return;
+    
     setError('');
     setIsGoogleLoading(true);
 
     try {
       const success = await loginWithGoogle();
       if (success) {
-        setLocation('/dashboard');
+        // Small delay to ensure state is saved
+        setTimeout(() => {
+          setLocation('/dashboard');
+        }, 100);
       } else {
-        setError('Google sign in failed');
+        setError('Google sign in failed. Please try again.');
       }
-    } catch {
-      setError('Something went wrong');
+    } catch (err) {
+      console.error('Google login error:', err);
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsGoogleLoading(false);
     }
@@ -174,33 +183,39 @@ const Login = () => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
+            aria-label="Continue with Google"
             style={{
               width: '100%',
-              height: '48px',
-              background: 'white',
-              border: 'none',
+              height: '52px',
+              background: isGoogleLoading ? '#f3f4f6' : 'white',
+              border: '2px solid transparent',
               borderRadius: '12px',
               color: '#374151',
               fontSize: '0.95rem',
               fontWeight: 600,
-              cursor: (isGoogleLoading || isLoading) ? 'not-allowed' : 'pointer',
-              opacity: (isGoogleLoading || isLoading) ? 0.7 : 1,
+              cursor: (isGoogleLoading || isLoading) ? 'wait' : 'pointer',
+              opacity: 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '12px',
               transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              position: 'relative',
+              zIndex: 20,
+              pointerEvents: (isGoogleLoading || isLoading) ? 'none' : 'auto'
             }}
             onMouseEnter={(e) => {
               if (!isGoogleLoading && !isLoading) {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.25)';
+                e.currentTarget.style.borderColor = '#4285F4';
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.borderColor = 'transparent';
             }}
           >
             {isGoogleLoading ? (
@@ -213,16 +228,16 @@ const Login = () => {
                   <circle 
                     style={{ opacity: 0.25 }} 
                     cx="12" cy="12" r="10" 
-                    stroke="#6B7280" 
+                    stroke="#4285F4" 
                     strokeWidth="4" 
                   />
                   <path 
                     style={{ opacity: 0.75 }} 
-                    fill="#6B7280" 
+                    fill="#4285F4" 
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
                   />
                 </svg>
-                Signing in...
+                <span style={{ color: '#4285F4' }}>Signing in with Google...</span>
               </>
             ) : (
               <>
