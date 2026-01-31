@@ -344,6 +344,7 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
 // Demo iframe component - renders VAPI widget in an isolated context (keeping for external page option)
 const DemoPreview = ({ agentId }: { agentId: string }) => {
   const [copiedTestHtml, setCopiedTestHtml] = useState(false);
+  const [downloadedTestHtml, setDownloadedTestHtml] = useState(false);
 
   // Generate test HTML that users can save and open (using VAPI official script tag method)
   const generateTestHtml = () => {
@@ -521,6 +522,29 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
     });
   };
 
+  const handleDownloadTestHtml = () => {
+    try {
+      const html = generateTestHtml();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'zukii-voice-agent-test.html';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setDownloadedTestHtml(true);
+      toast.success('HTML file downloaded!', {
+        description: 'Open the file in your browser to test the voice agent',
+        icon: '⬇️',
+      });
+      setTimeout(() => setDownloadedTestHtml(false), 3000);
+    } catch {
+      toast.error('Failed to download. Please try again.');
+    }
+  };
+
   return (
     <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-2 opacity-0 relative overflow-hidden">
       {/* Animated glow border effect */}
@@ -543,7 +567,7 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
         </p>
 
         {/* Demo options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Option 1: Open in new window */}
           <button
             onClick={handleOpenTestPage}
@@ -592,6 +616,40 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
                   {copiedTestHtml ? 'Copied!' : 'Copy Test HTML'}
                 </h3>
                 <p className="text-gray-400 text-xs">Copy a standalone HTML file to test locally</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Option 3: Download test HTML */}
+          <button
+            onClick={handleDownloadTestHtml}
+            className={`group relative p-4 rounded-2xl border transition-all duration-300 text-left ${
+              downloadedTestHtml 
+                ? 'bg-emerald-500/10 border-emerald-500/40' 
+                : 'bg-gradient-to-br from-cyan-500/10 to-violet-500/10 border-violet-500/20 hover:border-violet-500/40'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform ${
+                downloadedTestHtml 
+                  ? 'bg-emerald-500/30' 
+                  : 'bg-gradient-to-br from-cyan-500/30 to-violet-500/30'
+              }`}>
+                {downloadedTestHtml ? (
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <h3 className={`font-semibold mb-1 ${downloadedTestHtml ? 'text-emerald-400' : 'text-white'}`}>
+                  {downloadedTestHtml ? 'Downloaded!' : 'Download Test HTML'}
+                </h3>
+                <p className="text-gray-400 text-xs">Save as .html file to test offline</p>
               </div>
             </div>
           </button>
