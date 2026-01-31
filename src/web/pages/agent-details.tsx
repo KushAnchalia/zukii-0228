@@ -84,12 +84,41 @@ interface Agent {
 // Call status types
 type CallStatus = 'idle' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'ended' | 'error';
 
+// Ringtone audio as base64 data URI (short dial tone beeps)
+const RINGTONE_AUDIO = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOgpoF6iZiUrXV1gISPuqd/doKVo66OgHR9kI+umYeKlpSNrI+Ll5iXjamMi5ubmI2oioydnpqMo4iMoqCbiqGGjaOinYmhh42koKCIoIeOp56diKCIkKuanIigipKsmZqJooyTrJaYi6GPla2UlYyjkZWtk5OMo5KWrZKQjKSUl62RjoymlpeskIyMqJiaq46MjKqbmqqMjI2snJuqiYuOrZ6dqoaLkK2fnaqFi5GtoJ+phIuSrKGhp4OLk6yhoqWCi5Sro6OkgYuVqqSkoYGMlqqlpaGAjJeqpqahf4yYqqinnn+MmaunqZx+jJqrqKmae4ybq6mpmnuMnKuqqpl7jJ2rq6qYeoyerKuqlnqMn6ysq5V6jKCsrayUeoyhrK2sk3qMoq2trJJ6jKOtra2ReYykra6tkHmMpa2urY95jKatr66OeYynrrCujnmMqK6wro15jKmusK+NeYyqr7GwjHmMq6+xsIx4jKyvsrCLeYytr7OwiXiMrrCzsIh4jK+ws7GHeIywsbSxh3iMsbG0sYZ4jLKytbGFeIyzs7axhHiMtLO2sYN4jLW0trGCeIy2tLexgXiMt7W4sYB4jLi1uLF/eIy5triyf3iMure4sn54jLu3ubJ9eIy8uLmye3iMvbi6snp4jL65urJ5eIy/ubuyd3iMwLq7s3Z4jMG7vLN2eIzCvLyzdXiMw7y9s3R4jMS9vbNzeIzFvr6zcniMxr6+s3F4jMe/v7NweIzIwL+zcHiMyMDAs2+Hx8HAsnCIxsHAsnGJxcHAsXKKxMHAsHOLw8G/r3SMwsG+rXWNwcC9q3aOwL+7qXePv765p3iQvry3pXmRvbu1pHqSvLqzoniTu7mxn3uUurevo3yVubetnnqYuLWqnXibt7KomXidtrCllHmgta6ij3qis6ufi3ulsp+chnuosJuZgnuqrpmWfnuuqpaSeXuxqJGOdnm1pI2KcXm4oYqGbHi8noZ/Zne/m4J5X3XCmH1zV3PFk3lsT3LHj3VmR3DJi3JgPm7Lh29aNG3MgnRTO2vRfW9PNWXTY2hKOGTwXmNFOGYCXV9FN2kYXVxFN2wrXVtFN20+X1xGN3BOYl5HN3FgZWBIOHNwZ2NJOXV+amVKOneBbWdLO3mDbmhMP3qFb2lOQHuGcGtPQXyHcWxRQ32IcmxRRH+JdG1SSICLdW5TSoGMdnBUTIKNd3FVToOOeHJXUISSen9jW4SUfIZlYoaVgYxsao2boJJ4d5qqrZ6Lgqm3uaiYkrTAw7KglLzKyLimosDQ0L+vq8bZ2ca1r8vh5sy5sNLp7NLAuNnu8djHwOL19t7Ox+r9/ePX0PP+/+bg2/n///vs5N////zx6/////z38P////r5+f///wAA';
+
 // Voice Agent Demo Component using VAPI Web SDK
 const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const vapiRef = useRef<Vapi | null>(null);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Initialize ringtone audio
+  useEffect(() => {
+    ringtoneRef.current = new Audio(RINGTONE_AUDIO);
+    ringtoneRef.current.loop = true;
+    ringtoneRef.current.volume = 0.5;
+    
+    return () => {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause();
+        ringtoneRef.current = null;
+      }
+    };
+  }, []);
+  
+  // Play/stop ringtone based on call status
+  useEffect(() => {
+    if (callStatus === 'connecting' && ringtoneRef.current) {
+      ringtoneRef.current.currentTime = 0;
+      ringtoneRef.current.play().catch(console.error);
+    } else if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  }, [callStatus]);
   
   // Initialize Vapi instance
   useEffect(() => {
@@ -347,6 +376,7 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
   const [downloadedTestHtml, setDownloadedTestHtml] = useState(false);
 
   // Generate test HTML that users can save and open (using VAPI official script tag method)
+  // Uses only CDN URLs - no blob URLs - so it works when opened from local file system
   const generateTestHtml = () => {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -402,6 +432,7 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             font-size: 12px;
             color: #a78bfa;
             z-index: 9998;
+            transition: opacity 0.3s ease;
         }
         .loading {
             margin-top: 2rem;
@@ -418,6 +449,13 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             60% { content: '..'; }
             80%, 100% { content: '...'; }
         }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .connecting-status {
+            animation: pulse 1s infinite;
+        }
     </style>
 </head>
 <body>
@@ -427,13 +465,58 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
         💡 Tip: Allow microphone access when prompted to enable voice interaction.
     </div>
     <div id="loadingStatus" class="loading">Loading voice widget</div>
-    <div id="statusText" class="status-text" style="display: none;"></div>
+    <div id="statusText" class="status-text" style="display: none;">Ready</div>
 
     <!-- VAPI Official Widget Script Tag Method -->
     <script>
         var vapiInstance = null;
+        var ringtone = null;
+        var isConnecting = false;
         const assistant = "${agentId}";
         const apiKey = "${VAPI_PUBLIC_KEY}";
+        
+        // Ringtone as base64 data URI (dial tone beeps)
+        const RINGTONE_AUDIO = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOgpoF6iZiUrXV1gISPuqd/doKVo66OgHR9kI+umYeKlpSNrI+Ll5iXjamMi5ubmI2oioydnpqMo4iMoqCbiqGGjaOinYmhh42koKCIoIeOp56diKCIkKuanIigipKsmZqJooyTrJaYi6GPla2UlYyjkZWtk5OMo5KWrZKQjKSUl62RjoymlpeskIyMqJiaq46MjKqbmqqMjI2snJuqiYuOrZ6dqoaLkK2fnaqFi5GtoJ+phIuSrKGhp4OLk6yhoqWCi5Sro6OkgYuVqqSkoYGMlqqlpaGAjJeqpqahf4yYqqinnn+MmaunqZx+jJqrqKmae4ybq6mpmnuMnKuqqpl7jJ2rq6qYeoyerKuqlnqMn6ysq5V6jKCsrayUeoyhrK2sk3qMoq2trJJ6jKOtra2ReYykra6tkHmMpa2urY95jKatr66OeYynrrCujnmMqK6wro15jKmusK+NeYyqr7GwjHmMq6+xsIx4jKyvsrCLeYytr7OwiXiMrrCzsIh4jK+ws7GHeIywsbSxh3iMsbG0sYZ4jLKytbGFeIyzs7axhHiMtLO2sYN4jLW0trGCeIy2tLexgXiMt7W4sYB4jLi1uLF/eIy5triyf3iMure4sn54jLu3ubJ9eIy8uLmye3iMvbi6snp4jL65urJ5eIy/ubuyd3iMwLq7s3Z4jMG7vLN2eIzCvLyzdXiMw7y9s3R4jMS9vbNzeIzFvr6zcniMxr6+s3F4jMe/v7NweIzIwL+zcHiMyMDAs2+Hx8HAsnCIxsHAsnGJxcHAsXKKxMHAsHOLw8G/r3SMwsG+rXWNwcC9q3aOwL+7qXePv765p3iQvry3pXmRvbu1pHqSvLqzoniTu7mxn3uUurevo3yVubetnnqYuLWqnXibt7KomXidtrCllHmgta6ij3qis6ufi3ulsp+chnuosJuZgnuqrpmWfnuuqpaSeXuxqJGOdnm1pI2KcXm4oYqGbHi8noZ/Zne/m4J5X3XCmH1zV3PFk3lsT3LHj3VmR3DJi3JgPm7Lh29aNG3MgnRTO2vRfW9PNWXTY2hKOGTwXmNFOGYCXV9FN2kYXVxFN2wrXVtFN20+X1xGN3BOYl5HN3FgZWBIOHNwZ2NJOXV+amVKOneBbWdLO3mDbmhMP3qFb2lOQHuGcGtPQXyHcWxRQ32IcmxRRH+JdG1SSICLdW5TSoGMdnBUTIKNd3FVToOOeHJXUISSen9jW4SUfIZlYoaVgYxsao2boJJ4d5qqrZ6Lgqm3uaiYkrTAw7KglLzKyLimosDQ0L+vq8bZ2ca1r8vh5sy5sNLp7NLAuNnu8djHwOL19t7Ox+r9/ePX0PP+/+bg2/n///vs5N////zx6/////z38P////r5+f///wAA';
+        
+        // Initialize ringtone
+        function initRingtone() {
+            ringtone = new Audio(RINGTONE_AUDIO);
+            ringtone.loop = true;
+            ringtone.volume = 0.5;
+        }
+        
+        // Play ringtone
+        function playRingtone() {
+            if (ringtone) {
+                ringtone.currentTime = 0;
+                ringtone.play().catch(function(e) {
+                    console.log('Could not play ringtone:', e);
+                });
+            }
+        }
+        
+        // Stop ringtone
+        function stopRingtone() {
+            if (ringtone) {
+                ringtone.pause();
+                ringtone.currentTime = 0;
+            }
+        }
+        
+        // Update status display
+        function updateStatus(text, isConnectingState) {
+            var statusEl = document.getElementById('statusText');
+            if (statusEl) {
+                statusEl.textContent = text;
+                statusEl.style.display = 'block';
+                if (isConnectingState) {
+                    statusEl.classList.add('connecting-status');
+                } else {
+                    statusEl.classList.remove('connecting-status');
+                }
+            }
+        }
+        
         const buttonConfig = {
             position: "bottom-right",
             offset: "40px",
@@ -463,6 +546,9 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
         };
 
         (function (d, t) {
+            // Initialize ringtone on page load
+            initRingtone();
+            
             var g = document.createElement(t),
                 s = d.getElementsByTagName(t)[0];
             g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
@@ -478,7 +564,50 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
                         assistant: assistant,
                         config: buttonConfig
                     });
+                    
+                    // Listen for call events to manage ringtone
+                    if (vapiInstance && vapiInstance.on) {
+                        vapiInstance.on('call-start', function() {
+                            stopRingtone();
+                            isConnecting = false;
+                            updateStatus('🎤 Call Connected', false);
+                        });
+                        
+                        vapiInstance.on('call-end', function() {
+                            stopRingtone();
+                            isConnecting = false;
+                            updateStatus('📞 Call Ended', false);
+                            setTimeout(function() {
+                                updateStatus('Ready', false);
+                            }, 2000);
+                        });
+                        
+                        vapiInstance.on('error', function(error) {
+                            stopRingtone();
+                            isConnecting = false;
+                            updateStatus('❌ Error: ' + (error.message || 'Connection failed'), false);
+                        });
+                    }
+                    
+                    // Monitor for widget button clicks to detect connecting state
+                    document.addEventListener('click', function(e) {
+                        var target = e.target;
+                        // Check if clicked on vapi widget button area
+                        if (target.closest && target.closest('[data-vapi-btn]') || 
+                            (target.closest && target.closest('button') && target.closest('button').querySelector('[data-vapi-btn]'))) {
+                            if (!isConnecting) {
+                                isConnecting = true;
+                                playRingtone();
+                                updateStatus('📞 Connecting...', true);
+                            } else {
+                                stopRingtone();
+                                isConnecting = false;
+                            }
+                        }
+                    });
+                    
                     console.log('VAPI Widget initialized successfully');
+                    updateStatus('Ready', false);
                 } else {
                     document.getElementById('loadingStatus').textContent = 'Failed to initialize widget';
                     document.getElementById('loadingStatus').style.display = 'block';
@@ -512,10 +641,10 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
   };
 
   const handleOpenTestPage = () => {
+    // Use data URI instead of blob URL to avoid "Not allowed to load local resource" errors
     const html = generateTestHtml();
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no');
+    const dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    window.open(dataUri, '_blank', 'width=500,height=700,menubar=no,toolbar=no');
     toast.success('Test page opened!', {
       description: 'Allow microphone access to start talking',
       icon: '🎤',
@@ -525,15 +654,14 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
   const handleDownloadTestHtml = () => {
     try {
       const html = generateTestHtml();
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      // Use data URI for download as well to avoid any blob issues
+      const dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = dataUri;
       link.download = 'zukii-voice-agent-test.html';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
       setDownloadedTestHtml(true);
       toast.success('HTML file downloaded!', {
         description: 'Open the file in your browser to test the voice agent',
