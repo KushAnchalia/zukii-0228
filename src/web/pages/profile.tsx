@@ -124,7 +124,7 @@ const Profile = () => {
             {/* Logo */}
             <div className="flex items-center cursor-pointer" onClick={() => setLocation('/')}>
               <img
-                src="./zukii-brand-logo.png"
+                src="/zukii-brand-logo.png"
                 alt="Zukii"
                 className="h-20 md:h-[85px] w-auto"
                 style={{ filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))' }}

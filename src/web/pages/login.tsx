@@ -77,7 +77,7 @@ const Login = () => {
           }}
         >
           <img
-            src="./zukii-brand-logo.png"
+            src="/zukii-brand-logo.png"
             alt="Zukii Logo"
             style={{ 
               height: '200px', 

@@ -83,7 +83,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         <div className="relative">
           {/* Glow layer */}
           <img
-            src="./zukii-brand-logo.png"
+            src="/zukii-brand-logo.png"
             alt=""
             className="absolute inset-0 h-[250px] w-auto blur-xl opacity-40"
             style={{
@@ -92,7 +92,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           />
           {/* Main logo */}
           <img
-            src="./zukii-brand-logo.png"
+            src="/zukii-brand-logo.png"
             alt="Zukii"
             className="relative h-[250px] w-auto"
             style={{

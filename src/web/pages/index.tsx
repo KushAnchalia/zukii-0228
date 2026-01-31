@@ -31,7 +31,7 @@ const Index = () => {
         <div className="text-center relative z-10 animate-fade-in">
           <div className="relative flex items-center justify-center mb-8">
             <img
-              src="./zukii-brand-logo.png"
+              src="/zukii-brand-logo.png"
               alt="Zukii"
               className="h-[150px] w-auto animate-glow-pulse"
               style={{ filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.5))' }}
