@@ -118,28 +118,19 @@ const Signup = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '12px',
             marginBottom: '2.5rem',
             cursor: 'pointer'
           }}
         >
           <img
-            src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
+            src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
             alt="Zukii Logo"
-            style={{ height: '56px', width: 'auto' }}
-          />
-          <span 
-            style={{
-              fontSize: '2rem',
-              fontWeight: 700,
-              background: 'linear-gradient(90deg, #8B5CF6, #22D3EE)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+            style={{ 
+              height: '100px', 
+              width: 'auto',
+              filter: 'drop-shadow(0 0 20px rgba(34, 211, 238, 0.3))'
             }}
-          >
-            Zukii
-          </span>
+          />
         </div>
 
         {/* Card */}

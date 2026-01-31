@@ -354,13 +354,13 @@ const Landing = () => {
       <nav className="nav-glass fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setLocation('/')}>
+            <div className="flex items-center cursor-pointer group" onClick={() => setLocation('/')}>
               <img
-                src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt=""
-                className="h-9 w-auto logo-glow group-hover:scale-110 transition-transform"
+                src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+                alt="Zukii"
+                className="h-11 w-auto group-hover:scale-105 transition-transform"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.3))' }}
               />
-              <span className="text-xl font-bold text-white font-display gradient-text">Zukii</span>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
@@ -771,15 +771,14 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div 
-              className="flex items-center gap-3 cursor-pointer hover:opacity-100 transition-opacity group"
+              className="flex items-center cursor-pointer hover:opacity-100 transition-opacity group"
               onClick={() => setLocation('/')}
             >
               <img
-                src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt=""
-                className="h-10 w-auto opacity-70 group-hover:opacity-100 transition-opacity"
+                src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+                alt="Zukii"
+                className="h-10 w-auto opacity-80 group-hover:opacity-100 transition-opacity"
               />
-              <span className="text-xl font-bold text-white/70 font-display group-hover:text-white transition-colors">Zukii</span>
             </div>
 
             <div className="flex items-center gap-8">

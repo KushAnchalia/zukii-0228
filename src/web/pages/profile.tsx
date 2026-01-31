@@ -122,13 +122,13 @@ const Profile = () => {
             </button>
 
             {/* Logo */}
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setLocation('/')}>
+            <div className="flex items-center cursor-pointer" onClick={() => setLocation('/')}>
               <img
-                src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt=""
-                className="h-8 w-auto logo-glow"
+                src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+                alt="Zukii"
+                className="h-10 w-auto"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.3))' }}
               />
-              <span className="text-lg font-bold text-white font-display gradient-text">Zukii</span>
             </div>
           </div>
         </div>
