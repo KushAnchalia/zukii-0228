@@ -1,72 +1,38 @@
-// TODO(agent): This is a temporary "under construction" page.
-// Replace the entire contents of this file with the actual index page implementation
-// as instructed by the user. Delete this comment and the placeholder UI below.
+import { useLocation } from 'wouter';
+import { useAuth } from '@/lib/store';
+import { useEffect } from 'react';
 
-import { useState, useEffect } from "react";
+const Index = () => {
+  const [, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
 
-const AGENT_THOUGHTS = [
-	"Crafting the perfect landing page",
-	"Fine-tuning the color palette",
-	"Making buttons actually clickable",
-	"Ensuring it works on your phone too",
-	"Adding just the right amount of whitespace",
-	"Teaching forms to be polite",
-	"Making the logo pixel-perfect",
-	"Optimizing for speed (patience, ironic)",
-	"Writing code that future-me won't hate",
-	"Building something worth the wait",
-];
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/dashboard');
+    } else {
+      setLocation('/login');
+    }
+  }, [isAuthenticated, setLocation]);
 
-function Index() {
-	const [thoughtIndex, setThoughtIndex] = useState(0);
-
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setThoughtIndex((prev) => (prev + 1) % AGENT_THOUGHTS.length);
-		}, 3000);
-		return () => clearInterval(interval);
-	}, []);
-
-	return (
-		<div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-center p-8">
-
-			<h1 className="text-[clamp(2.5rem,10vw,6rem)] font-black tracking-[-0.03em] text-black leading-none mb-10 text-center">
-				Under
-				<br />
-				Construction
-			</h1>
-
-			{/* Agent thought with shimmer */}
-			<div className="h-8 flex items-center justify-center">
-				<p className="text-base md:text-lg shimmer-text italic">
-					"{AGENT_THOUGHTS[thoughtIndex]}"
-				</p>
-			</div>
-
-			<style>{`
-				.shimmer-text {
-					background: linear-gradient(
-						90deg,
-						#737373 0%,
-						#737373 40%,
-						#d4d4d4 50%,
-						#737373 60%,
-						#737373 100%
-					);
-					background-size: 200% 100%;
-					-webkit-background-clip: text;
-					background-clip: text;
-					-webkit-text-fill-color: transparent;
-					animation: shimmer 2s ease-in-out infinite;
-				}
-
-				@keyframes shimmer {
-					0% { background-position: 100% 0; }
-					100% { background-position: -100% 0; }
-				}
-			`}</style>
-		</div>
-	);
-}
+  // Show a brief loading state while redirecting
+  return (
+    <div className="min-h-screen bg-[#0F0D1A] flex items-center justify-center">
+      <div className="text-center animate-fade-in">
+        <img
+          src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
+          alt="Chugli.ai"
+          className="h-24 w-auto mx-auto mb-6 animate-pulse-glow"
+        />
+        <div className="flex items-center justify-center gap-2 text-gray-400">
+          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <span>Loading...</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Index;
