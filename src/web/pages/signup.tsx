@@ -119,33 +119,18 @@ const Signup = () => {
             justifyContent: 'center',
             alignItems: 'center',
             marginBottom: '2.5rem',
-            cursor: 'pointer',
-            gap: '12px'
+            cursor: 'pointer'
           }}
         >
           <img
-            src="./zukii-owl-simple.png"
+            src="./zukii-brand-logo.png"
             alt="Zukii Logo"
             style={{ 
-              height: '70px', 
+              height: '140px', 
               width: 'auto',
-              filter: 'drop-shadow(0 0 15px rgba(34, 211, 238, 0.4))'
+              filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
             }}
           />
-          <span
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              fontFamily: 'Syne, sans-serif',
-              background: 'linear-gradient(135deg, #22D3EE 0%, #6EE7B7 50%, #22D3EE 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 30px rgba(34, 211, 238, 0.3)'
-            }}
-          >
-            Zukii
-          </span>
         </div>
 
         {/* Card */}

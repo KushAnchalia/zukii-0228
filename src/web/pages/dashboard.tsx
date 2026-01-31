@@ -251,16 +251,13 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center cursor-pointer gap-2" onClick={() => setLocation('/')}>
+            <div className="flex items-center cursor-pointer" onClick={() => setLocation('/')}>
               <img
-                src="./zukii-owl-simple.png"
+                src="./zukii-brand-logo.png"
                 alt="Zukii"
-                className="h-10 w-auto"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.4))' }}
+                className="h-12 w-auto"
+                style={{ filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.5))' }}
               />
-              <span className="text-xl font-bold font-display bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                Zukii
-              </span>
             </div>
 
             {/* User Menu */}
