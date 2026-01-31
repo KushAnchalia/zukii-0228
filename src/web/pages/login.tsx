@@ -46,8 +46,8 @@ const Login = () => {
         <div className="flex justify-center mb-10 animate-fade-in-up">
           <div className="relative">
             <img
-              src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-              alt="Chugli.ai"
+              src="./zukii-logo.png"
+              alt="Zukii"
               className="h-20 w-auto logo-glow"
             />
           </div>

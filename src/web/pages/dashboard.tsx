@@ -97,8 +97,8 @@ const Dashboard = () => {
             {/* Logo */}
             <div className="flex items-center gap-3">
               <img
-                src="./chugli-logo-speech-wave-lrJ6m_0uOCFqaG1qx7mld.png"
-                alt="Chugli.ai"
+                src="./zukii-logo.png"
+                alt="Zukii"
                 className="h-10 w-auto logo-glow"
               />
             </div>

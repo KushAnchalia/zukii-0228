@@ -50,7 +50,7 @@ export const useAuth = create<AuthState>()(
       },
     }),
     {
-      name: 'chugli-auth',
+      name: 'zukii-auth',
     }
   )
 );
@@ -104,12 +104,12 @@ export const useWebsites = create<WebsiteState>()(
           websiteName: website.name,
           websiteUrl: website.url,
           status: website.status,
-          embedCode: `<script src="https://chugli.ai/embed.js" data-agent-id="agent-${websiteId}"></script>`,
+          embedCode: `<script src="https://zukii.ai/embed.js" data-agent-id="agent-${websiteId}"></script>`,
         };
       },
     }),
     {
-      name: 'chugli-websites',
+      name: 'zukii-websites',
     }
   )
 );
