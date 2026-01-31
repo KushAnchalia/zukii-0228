@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { useAuth, useWebsites } from '@/lib/store';
 import type { WebsiteStatus } from '@/lib/types';
@@ -6,6 +6,10 @@ import { fetchWebsite } from '@/lib/api';
 import { mapAPIStatus } from '@/lib/types';
 import { toast } from 'sonner';
 import AnimatedBackground from '@/components/animated-background';
+import Vapi from '@vapi-ai/web';
+
+// VAPI Public Key for authentication
+const VAPI_PUBLIC_KEY = '919bbeaa-d657-4c72-a7b9-8772ac8ebd19';
 
 const StatusBadge = ({ status }: { status: WebsiteStatus }) => {
   const config = {
@@ -77,12 +81,271 @@ interface Agent {
   vapiAgentId?: string;
 }
 
-// Demo iframe component - renders VAPI widget in an isolated context
+// Call status types
+type CallStatus = 'idle' | 'connecting' | 'connected' | 'speaking' | 'listening' | 'ended' | 'error';
+
+// Voice Agent Demo Component using VAPI Web SDK
+const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
+  const [callStatus, setCallStatus] = useState<CallStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [volumeLevel, setVolumeLevel] = useState(0);
+  const vapiRef = useRef<Vapi | null>(null);
+  
+  // Initialize Vapi instance
+  useEffect(() => {
+    vapiRef.current = new Vapi(VAPI_PUBLIC_KEY);
+    
+    const vapi = vapiRef.current;
+    
+    // Call started event
+    vapi.on('call-start', () => {
+      setCallStatus('connected');
+      setErrorMessage(null);
+      toast.success('Call connected!', {
+        description: 'You can now speak with your AI agent.',
+        icon: '🎤',
+      });
+    });
+    
+    // Call ended event
+    vapi.on('call-end', () => {
+      setCallStatus('ended');
+      setTimeout(() => setCallStatus('idle'), 2000);
+      toast.info('Call ended', {
+        description: 'The voice session has been terminated.',
+        icon: '📞',
+      });
+    });
+    
+    // Speech start event (AI is speaking)
+    vapi.on('speech-start', () => {
+      setCallStatus('speaking');
+    });
+    
+    // Speech end event (AI finished speaking)
+    vapi.on('speech-end', () => {
+      setCallStatus('listening');
+    });
+    
+    // Volume level event
+    vapi.on('volume-level', (volume: number) => {
+      setVolumeLevel(volume);
+    });
+    
+    // Error event
+    vapi.on('error', (error: Error) => {
+      console.error('VAPI Error:', error);
+      setCallStatus('error');
+      setErrorMessage(error.message || 'An error occurred during the call');
+      toast.error('Call Error', {
+        description: error.message || 'Failed to connect to voice agent',
+        icon: '❌',
+      });
+    });
+    
+    // Message event for transcripts and function calls
+    vapi.on('message', (message: unknown) => {
+      console.log('VAPI Message:', message);
+    });
+    
+    // Cleanup on unmount
+    return () => {
+      if (vapiRef.current) {
+        vapiRef.current.stop();
+      }
+    };
+  }, []);
+  
+  // Start call
+  const handleStartCall = useCallback(async () => {
+    if (!vapiRef.current || !agentId) return;
+    
+    try {
+      setCallStatus('connecting');
+      setErrorMessage(null);
+      toast.loading('Connecting to voice agent...', { id: 'vapi-connecting' });
+      
+      await vapiRef.current.start(agentId);
+      toast.dismiss('vapi-connecting');
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      setCallStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to start call');
+      toast.dismiss('vapi-connecting');
+      toast.error('Connection failed', {
+        description: 'Please check your microphone permissions and try again.',
+        icon: '🔇',
+      });
+    }
+  }, [agentId]);
+  
+  // End call
+  const handleEndCall = useCallback(() => {
+    if (vapiRef.current) {
+      vapiRef.current.stop();
+    }
+  }, []);
+  
+  // Get status display info
+  const getStatusInfo = () => {
+    switch (callStatus) {
+      case 'idle':
+        return { label: 'Ready', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+      case 'connecting':
+        return { label: 'Connecting...', color: 'text-amber-400', bgColor: 'bg-amber-500/20' };
+      case 'connected':
+        return { label: 'Connected', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' };
+      case 'speaking':
+        return { label: 'AI Speaking', color: 'text-violet-400', bgColor: 'bg-violet-500/20' };
+      case 'listening':
+        return { label: 'Listening...', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' };
+      case 'ended':
+        return { label: 'Call Ended', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+      case 'error':
+        return { label: 'Error', color: 'text-rose-400', bgColor: 'bg-rose-500/20' };
+      default:
+        return { label: 'Unknown', color: 'text-gray-400', bgColor: 'bg-gray-500/20' };
+    }
+  };
+  
+  const statusInfo = getStatusInfo();
+  const isCallActive = ['connecting', 'connected', 'speaking', 'listening'].includes(callStatus);
+
+  return (
+    <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-1 opacity-0 relative overflow-hidden">
+      {/* Animated glow border effect */}
+      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-fuchsia-500/20 opacity-50 animate-pulse" style={{ animationDuration: '3s' }} />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white font-display flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/30 to-violet-500/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            Try Voice Agent
+          </h2>
+          
+          {/* Status Badge */}
+          <div className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color} flex items-center gap-2`}>
+            {isCallActive && (
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${statusInfo.bgColor} opacity-75`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${statusInfo.bgColor.replace('/20', '')}`} />
+              </span>
+            )}
+            {statusInfo.label}
+          </div>
+        </div>
+
+        <p className="text-gray-400 text-sm mb-6">
+          Test your AI voice agent directly in your browser. Click the button below to start a voice conversation.
+        </p>
+
+        {/* Voice Visualization */}
+        {isCallActive && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-violet-500/10 to-cyan-500/10 border border-violet-500/20">
+            <div className="flex items-center justify-center gap-1 h-16">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-1 bg-gradient-to-t from-violet-500 to-cyan-400 rounded-full transition-all duration-100"
+                  style={{
+                    height: `${Math.max(8, (callStatus === 'speaking' ? volumeLevel * 100 : (callStatus === 'listening' ? 30 + Math.random() * 20 : 10)) * (0.5 + Math.random() * 0.5))}%`,
+                    opacity: isCallActive ? 0.8 : 0.3,
+                  }}
+                />
+              ))}
+            </div>
+            <p className="text-center text-xs text-gray-500 mt-2">
+              {callStatus === 'speaking' ? '🔊 AI is speaking...' : callStatus === 'listening' ? '🎤 Listening to you...' : '📞 Call in progress...'}
+            </p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-rose-400 font-semibold text-sm">Connection Error</p>
+                <p className="text-rose-400/70 text-xs mt-1">{errorMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {!isCallActive ? (
+            <button
+              onClick={handleStartCall}
+              disabled={callStatus === 'connecting'}
+              className="flex-1 group relative px-6 py-4 rounded-2xl font-semibold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600/50 to-cyan-600/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center justify-center gap-3">
+                {callStatus === 'connecting' ? (
+                  <>
+                    <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span>Start Voice Call</span>
+                  </>
+                )}
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={handleEndCall}
+              className="flex-1 group relative px-6 py-4 rounded-2xl font-semibold text-white transition-all duration-300 overflow-hidden bg-rose-500 hover:bg-rose-600"
+            >
+              <div className="relative flex items-center justify-center gap-3">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+                </svg>
+                <span>End Call</span>
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Microphone Permission Note */}
+        <div className="mt-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-amber-400/80 text-xs">
+              <strong>Note:</strong> Your browser will ask for microphone permission. Allow it to enable voice interaction with your AI agent.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Demo iframe component - renders VAPI widget in an isolated context (keeping for external page option)
 const DemoPreview = ({ agentId }: { agentId: string }) => {
-  const [showDemo, setShowDemo] = useState(false);
   const [copiedTestHtml, setCopiedTestHtml] = useState(false);
 
-  // Generate test HTML that users can save and open
+  // Generate test HTML that users can save and open (using public key now)
   const generateTestHtml = () => {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -134,54 +397,84 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
     </div>
     
     <!-- Zukii Voice Agent Widget -->
-    <script>
-        var vapiInstance = null;
-        const assistant = "${agentId}";
-        const apiKey = "4dc6866b-07dd-4b5b-9e59-8dfbccaab172";
-        const buttonConfig = {
-            position: "bottom-right",
-            offset: "40px",
-            width: "50px",
-            height: "50px",
-            idle: {
-                color: "rgb(93, 254, 202)",
-                type: "pill",
-                title: "Talk to AI",
-                subtitle: "Click to start",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone.svg",
-            },
-            loading: {
-                color: "rgb(93, 124, 202)",
-                type: "pill",
-                title: "Connecting...",
-                subtitle: "Please wait",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/loader-2.svg",
-            },
-            active: {
-                color: "rgb(255, 0, 0)",
-                type: "pill",
-                title: "Call in progress",
-                subtitle: "Click to end",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone-off.svg",
-            },
+    <script type="module">
+        import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/+esm';
+        
+        const vapi = new Vapi('${VAPI_PUBLIC_KEY}');
+        const assistantId = '${agentId}';
+        
+        // Create and style the call button
+        const button = document.createElement('button');
+        button.innerHTML = '🎤 Talk to AI';
+        button.style.cssText = \`
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s ease;
+            z-index: 9999;
+        \`;
+        button.onmouseover = () => button.style.transform = 'scale(1.05)';
+        button.onmouseout = () => button.style.transform = 'scale(1)';
+        document.body.appendChild(button);
+        
+        let isCallActive = false;
+        
+        button.onclick = async () => {
+            if (!isCallActive) {
+                try {
+                    button.innerHTML = '⏳ Connecting...';
+                    await vapi.start(assistantId);
+                } catch (error) {
+                    console.error('Failed to start call:', error);
+                    button.innerHTML = '❌ Error - Try Again';
+                    setTimeout(() => button.innerHTML = '🎤 Talk to AI', 3000);
+                }
+            } else {
+                vapi.stop();
+            }
         };
-
-        (function (d, t) {
-            var g = document.createElement(t),
-                s = d.getElementsByTagName(t)[0];
-            g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
-            g.defer = true;
-            g.async = true;
-            s.parentNode.insertBefore(g, s);
-
-            g.onload = function () {
-                vapiInstance = window.vapiSDK.run({
-                    apiKey: apiKey,
-                    assistant: assistant,
-                    config: buttonConfig,
-                });
-            };
-        })(document, "script");
+        
+        vapi.on('call-start', () => {
+            isCallActive = true;
+            button.innerHTML = '🔴 End Call';
+            button.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+        });
+        
+        vapi.on('call-end', () => {
+            isCallActive = false;
+            button.innerHTML = '🎤 Talk to AI';
+            button.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)';
+        });
+        
+        vapi.on('speech-start', () => {
+            button.innerHTML = '🔊 AI Speaking...';
+        });
+        
+        vapi.on('speech-end', () => {
+            if (isCallActive) {
+                button.innerHTML = '🎧 Listening...';
+            }
+        });
+        
+        vapi.on('error', (error) => {
+            console.error('VAPI Error:', error);
+            isCallActive = false;
+            button.innerHTML = '❌ Error';
+            button.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            setTimeout(() => {
+                button.innerHTML = '🎤 Talk to AI';
+                button.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)';
+            }, 3000);
+        });
     </script>
 </body>
 </html>`;
@@ -212,140 +505,29 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
     });
   };
 
-  // Create iframe with srcdoc for isolated demo
-  const iframeSrcDoc = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: linear-gradient(135deg, #0a0612 0%, #150d20 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: system-ui, -apple-system, sans-serif;
-            color: white;
-            padding: 20px;
-        }
-        .content {
-            text-align: center;
-            max-width: 300px;
-        }
-        h2 {
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p {
-            color: #9ca3af;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-        .pulse-ring {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid rgba(139, 92, 246, 0.4);
-            animation: pulse 2s ease-out infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-    </style>
-</head>
-<body>
-    <div class="content">
-        <h2>🎤 Voice Agent Active</h2>
-        <p>Click the button in the corner to start a voice conversation with your AI assistant.</p>
-    </div>
-    <div class="pulse-ring"></div>
-    
-    <script>
-        var vapiInstance = null;
-        const assistant = "${agentId}";
-        const apiKey = "4dc6866b-07dd-4b5b-9e59-8dfbccaab172";
-        const buttonConfig = {
-            position: "bottom-right",
-            offset: "20px",
-            width: "50px",
-            height: "50px",
-            idle: {
-                color: "rgb(139, 92, 246)",
-                type: "pill",
-                title: "Talk to AI",
-                subtitle: "Click to start",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone.svg",
-            },
-            loading: {
-                color: "rgb(93, 124, 202)",
-                type: "pill",
-                title: "Connecting...",
-                subtitle: "Please wait",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/loader-2.svg",
-            },
-            active: {
-                color: "rgb(239, 68, 68)",
-                type: "pill",
-                title: "Call active",
-                subtitle: "Click to end",
-                icon: "https://unpkg.com/lucide-static@0.321.0/icons/phone-off.svg",
-            },
-        };
-
-        (function (d, t) {
-            var g = document.createElement(t),
-                s = d.getElementsByTagName(t)[0];
-            g.src = "https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js";
-            g.defer = true;
-            g.async = true;
-            s.parentNode.insertBefore(g, s);
-
-            g.onload = function () {
-                vapiInstance = window.vapiSDK.run({
-                    apiKey: apiKey,
-                    assistant: assistant,
-                    config: buttonConfig,
-                });
-            };
-        })(document, "script");
-    </script>
-</body>
-</html>`;
-
   return (
-    <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-1 opacity-0 relative overflow-hidden">
+    <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-2 opacity-0 relative overflow-hidden">
       {/* Animated glow border effect */}
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-fuchsia-500/20 opacity-50 animate-pulse" style={{ animationDuration: '3s' }} />
+      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-fuchsia-500/20 via-violet-500/20 to-cyan-500/20 opacity-50 animate-pulse" style={{ animationDuration: '4s' }} />
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white font-display flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/30 to-violet-500/30 flex items-center justify-center">
-              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </div>
-            Live Demo
+            External Testing
           </h2>
         </div>
 
         <p className="text-gray-400 text-sm mb-6">
-          Test your voice agent right here! Choose one of the options below to try it out.
+          Test your voice agent in a separate window or copy the HTML to host on your own server.
         </p>
 
         {/* Demo options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Option 1: Open in new window */}
           <button
             onClick={handleOpenTestPage}
@@ -359,7 +541,7 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
               </div>
               <div>
                 <h3 className="text-white font-semibold mb-1">Open Test Page</h3>
-                <p className="text-gray-400 text-xs">Opens a new window with the voice widget ready to use</p>
+                <p className="text-gray-400 text-xs">Opens a new window with the voice widget</p>
               </div>
             </div>
           </button>
@@ -397,51 +579,6 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
               </div>
             </div>
           </button>
-        </div>
-
-        {/* Toggle embedded demo */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-gray-400 text-sm">Or try it embedded below:</span>
-          <button
-            onClick={() => setShowDemo(!showDemo)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-              showDemo 
-                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'
-                : 'btn-gradient text-white'
-            }`}
-          >
-            {showDemo ? 'Hide Demo' : 'Show Demo'}
-          </button>
-        </div>
-
-        {/* Embedded iframe demo */}
-        {showDemo && (
-          <div className="relative rounded-2xl overflow-hidden border border-violet-500/30 animate-scale-in">
-            <iframe
-              srcDoc={iframeSrcDoc}
-              title="Voice Agent Demo"
-              className="w-full h-[400px] bg-[#0a0612]"
-              allow="microphone"
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            />
-            
-            {/* Overlay hint */}
-            <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300 text-xs font-medium backdrop-blur-sm">
-              💡 Click the button in the corner to start
-            </div>
-          </div>
-        )}
-
-        {/* Microphone permission note */}
-        <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-amber-400/80 text-xs">
-              <strong>Note:</strong> Your browser will ask for microphone permission. Allow it to enable voice interaction with your AI agent.
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -789,7 +926,10 @@ const AgentDetails = () => {
 
         {/* Live Demo Section - Only show when agent is ready */}
         {agent.status === 'ready' && agent.vapiAgentId && (
-          <DemoPreview agentId={agent.vapiAgentId} />
+          <>
+            <VoiceAgentDemo agentId={agent.vapiAgentId} />
+            <DemoPreview agentId={agent.vapiAgentId} />
+          </>
         )}
 
         {/* Instructions */}
