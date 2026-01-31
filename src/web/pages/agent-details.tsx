@@ -345,7 +345,7 @@ const VoiceAgentDemo = ({ agentId }: { agentId: string }) => {
 const DemoPreview = ({ agentId }: { agentId: string }) => {
   const [copiedTestHtml, setCopiedTestHtml] = useState(false);
 
-  // Generate test HTML that users can save and open (using public key now)
+  // Generate test HTML that users can save and open (using VAPI widget script)
   const generateTestHtml = () => {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -354,6 +354,9 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zukii Voice Agent Test</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: linear-gradient(135deg, #0f0d1a 0%, #1a1625 100%);
@@ -372,6 +375,7 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             background: linear-gradient(135deg, #8b5cf6, #06b6d4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         p {
             color: #9ca3af;
@@ -387,6 +391,56 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
             border-radius: 12px;
             font-size: 0.875rem;
         }
+        .vapi-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vapi-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(139, 92, 246, 0.7);
+        }
+        .vapi-btn.active {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+        .vapi-btn.connecting {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .status-text {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #a78bfa;
+            z-index: 9998;
+        }
     </style>
 </head>
 <body>
@@ -396,85 +450,119 @@ const DemoPreview = ({ agentId }: { agentId: string }) => {
         💡 Tip: Allow microphone access when prompted to enable voice interaction.
     </div>
     
-    <!-- Zukii Voice Agent Widget -->
-    <script type="module">
-        import Vapi from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/+esm';
+    <button id="vapiBtn" class="vapi-btn">🎤</button>
+    <div id="statusText" class="status-text" style="display: none;"></div>
+
+    <!-- VAPI Widget SDK -->
+    <script>
+        var vapiInstance = null;
+        var isCallActive = false;
+        var btn = document.getElementById('vapiBtn');
+        var statusText = document.getElementById('statusText');
         
-        const vapi = new Vapi('${VAPI_PUBLIC_KEY}');
-        const assistantId = '${agentId}';
+        function updateStatus(text, show) {
+            statusText.textContent = text;
+            statusText.style.display = show ? 'block' : 'none';
+        }
         
-        // Create and style the call button
-        const button = document.createElement('button');
-        button.innerHTML = '🎤 Talk to AI';
-        button.style.cssText = \`
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-            transition: all 0.3s ease;
-            z-index: 9999;
-        \`;
-        button.onmouseover = () => button.style.transform = 'scale(1.05)';
-        button.onmouseout = () => button.style.transform = 'scale(1)';
-        document.body.appendChild(button);
+        function loadVapiSDK() {
+            return new Promise(function(resolve, reject) {
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/vapi.umd.min.js';
+                script.onload = function() {
+                    resolve(window.Vapi);
+                };
+                script.onerror = function() {
+                    reject(new Error('Failed to load VAPI SDK'));
+                };
+                document.head.appendChild(script);
+            });
+        }
         
-        let isCallActive = false;
+        async function initVapi() {
+            try {
+                var VapiClass = await loadVapiSDK();
+                vapiInstance = new VapiClass('${VAPI_PUBLIC_KEY}');
+                
+                vapiInstance.on('call-start', function() {
+                    isCallActive = true;
+                    btn.innerHTML = '📞';
+                    btn.classList.add('active');
+                    btn.classList.remove('connecting');
+                    updateStatus('Connected - Speak now!', true);
+                });
+                
+                vapiInstance.on('call-end', function() {
+                    isCallActive = false;
+                    btn.innerHTML = '🎤';
+                    btn.classList.remove('active');
+                    updateStatus('Call ended', true);
+                    setTimeout(function() { updateStatus('', false); }, 2000);
+                });
+                
+                vapiInstance.on('speech-start', function() {
+                    btn.innerHTML = '🔊';
+                    updateStatus('AI is speaking...', true);
+                });
+                
+                vapiInstance.on('speech-end', function() {
+                    if (isCallActive) {
+                        btn.innerHTML = '🎧';
+                        updateStatus('Listening...', true);
+                    }
+                });
+                
+                vapiInstance.on('error', function(error) {
+                    console.error('VAPI Error:', error);
+                    isCallActive = false;
+                    btn.innerHTML = '❌';
+                    btn.classList.remove('active', 'connecting');
+                    updateStatus('Error: ' + (error.message || 'Connection failed'), true);
+                    setTimeout(function() {
+                        btn.innerHTML = '🎤';
+                        updateStatus('', false);
+                    }, 3000);
+                });
+                
+                console.log('VAPI initialized successfully');
+                updateStatus('Ready - Click to start', true);
+                setTimeout(function() { updateStatus('', false); }, 2000);
+                
+            } catch (error) {
+                console.error('Failed to initialize VAPI:', error);
+                updateStatus('Failed to load voice SDK', true);
+            }
+        }
         
-        button.onclick = async () => {
-            if (!isCallActive) {
+        btn.onclick = async function() {
+            if (!vapiInstance) {
+                updateStatus('Initializing...', true);
+                await initVapi();
+            }
+            
+            if (!isCallActive && vapiInstance) {
                 try {
-                    button.innerHTML = '⏳ Connecting...';
-                    await vapi.start(assistantId);
+                    btn.innerHTML = '⏳';
+                    btn.classList.add('connecting');
+                    updateStatus('Connecting...', true);
+                    await vapiInstance.start('${agentId}');
                 } catch (error) {
                     console.error('Failed to start call:', error);
-                    button.innerHTML = '❌ Error - Try Again';
-                    setTimeout(() => button.innerHTML = '🎤 Talk to AI', 3000);
+                    btn.innerHTML = '❌';
+                    btn.classList.remove('connecting');
+                    updateStatus('Failed to connect: ' + (error.message || 'Unknown error'), true);
+                    setTimeout(function() {
+                        btn.innerHTML = '🎤';
+                        updateStatus('', false);
+                    }, 3000);
                 }
-            } else {
-                vapi.stop();
+            } else if (vapiInstance) {
+                vapiInstance.stop();
             }
         };
         
-        vapi.on('call-start', () => {
-            isCallActive = true;
-            button.innerHTML = '🔴 End Call';
-            button.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-        });
-        
-        vapi.on('call-end', () => {
-            isCallActive = false;
-            button.innerHTML = '🎤 Talk to AI';
-            button.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)';
-        });
-        
-        vapi.on('speech-start', () => {
-            button.innerHTML = '🔊 AI Speaking...';
-        });
-        
-        vapi.on('speech-end', () => {
-            if (isCallActive) {
-                button.innerHTML = '🎧 Listening...';
-            }
-        });
-        
-        vapi.on('error', (error) => {
-            console.error('VAPI Error:', error);
-            isCallActive = false;
-            button.innerHTML = '❌ Error';
-            button.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-            setTimeout(() => {
-                button.innerHTML = '🎤 Talk to AI';
-                button.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)';
-            }, 3000);
-        });
+        // Initialize on page load
+        initVapi();
     </script>
 </body>
 </html>`;
