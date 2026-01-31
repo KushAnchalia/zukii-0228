@@ -86,6 +86,8 @@ const AgentDetails = () => {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demoActive, setDemoActive] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -205,6 +207,81 @@ const AgentDetails = () => {
       document.body.removeChild(textArea);
     }
   };
+
+  // Start live demo - inject VAPI widget
+  const handleStartDemo = () => {
+    if (!agent?.vapiAgentId) {
+      toast.error('No agent ID available for demo');
+      return;
+    }
+
+    setDemoLoading(true);
+
+    // Remove any existing VAPI widget scripts first
+    const existingScripts = document.querySelectorAll('script[src*="vapi.ai"]');
+    existingScripts.forEach(script => script.remove());
+
+    // Remove existing widget containers
+    const existingWidgets = document.querySelectorAll('[data-vapi-widget]');
+    existingWidgets.forEach(widget => widget.remove());
+
+    // Create and inject the VAPI widget script
+    const script = document.createElement('script');
+    script.src = 'https://cdn.vapi.ai/widget.js';
+    script.setAttribute('data-assistant-id', agent.vapiAgentId);
+    script.setAttribute('data-vapi-widget', 'true');
+    
+    script.onload = () => {
+      setDemoLoading(false);
+      setDemoActive(true);
+      toast.success('Voice agent loaded!', {
+        description: 'Look for the widget in the bottom right corner.',
+        icon: '🎤',
+      });
+    };
+
+    script.onerror = () => {
+      setDemoLoading(false);
+      toast.error('Failed to load voice widget', {
+        description: 'Please try again later.',
+      });
+    };
+
+    document.body.appendChild(script);
+  };
+
+  // Stop live demo - remove VAPI widget
+  const handleStopDemo = () => {
+    // Remove VAPI widget scripts
+    const scripts = document.querySelectorAll('script[src*="vapi.ai"]');
+    scripts.forEach(script => script.remove());
+
+    // Remove widget containers/buttons that VAPI creates
+    const widgets = document.querySelectorAll('[data-vapi-widget], .vapi-widget, .vapi-btn, [class*="vapi"]');
+    widgets.forEach(widget => widget.remove());
+
+    // Also try to find any iframe or floating button VAPI might create
+    const iframes = document.querySelectorAll('iframe[src*="vapi"]');
+    iframes.forEach(iframe => iframe.remove());
+
+    setDemoActive(false);
+    toast.info('Demo stopped', {
+      description: 'The voice widget has been removed.',
+      icon: '👋',
+    });
+  };
+
+  // Cleanup demo on unmount
+  useEffect(() => {
+    return () => {
+      if (demoActive) {
+        const scripts = document.querySelectorAll('script[src*="vapi.ai"]');
+        scripts.forEach(script => script.remove());
+        const widgets = document.querySelectorAll('[data-vapi-widget], .vapi-widget, .vapi-btn, [class*="vapi"]');
+        widgets.forEach(widget => widget.remove());
+      }
+    };
+  }, [demoActive]);
 
   if (!isAuthenticated) {
     return null;
@@ -418,6 +495,116 @@ const AgentDetails = () => {
             </div>
           )}
         </div>
+
+        {/* Live Demo Section - Only show when agent is ready */}
+        {agent.status === 'ready' && agent.vapiAgentId && (
+          <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-1 opacity-0 relative overflow-hidden">
+            {/* Animated glow border effect */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-fuchsia-500/20 opacity-50 animate-pulse" style={{ animationDuration: '3s' }} />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white font-display flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/30 to-violet-500/30 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  Live Demo
+                </h2>
+                
+                {demoActive && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Widget Active
+                  </div>
+                )}
+              </div>
+
+              <p className="text-gray-400 text-sm mb-6">
+                Try your voice agent right here! Click the button below to start a conversation.
+              </p>
+
+              {/* Voice Wave Animation */}
+              <div className="flex justify-center mb-6">
+                <div className="flex items-end gap-1 h-12">
+                  {[...Array(12)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1 bg-gradient-to-t from-cyan-500 to-violet-500 rounded-full transition-all duration-300 ${
+                        demoActive ? 'animate-sound-wave' : 'h-2 opacity-30'
+                      }`}
+                      style={{
+                        animationDelay: `${i * 0.1}s`,
+                        height: demoActive ? undefined : '8px',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Demo Controls */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                {!demoActive ? (
+                  <button
+                    onClick={handleStartDemo}
+                    disabled={demoLoading}
+                    className="group relative px-8 py-4 rounded-2xl font-semibold text-white transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
+                  >
+                    {/* Button gradient background */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 transition-all duration-300 group-hover:scale-105" />
+                    
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
+                    
+                    <div className="relative flex items-center gap-3">
+                      {demoLoading ? (
+                        <>
+                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Loading Widget...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                          Try Voice Agent
+                        </>
+                      )}
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopDemo}
+                    className="group px-6 py-3 rounded-xl font-semibold text-rose-400 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                      </svg>
+                      Stop Demo
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              {/* Hint arrow pointing to bottom right */}
+              {demoActive && (
+                <div className="mt-6 flex items-center justify-end gap-2 text-gray-400 text-sm animate-bounce">
+                  <span>Widget appears here</span>
+                  <svg className="w-5 h-5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Instructions */}
         <div className="glass-card gradient-border rounded-3xl p-8 mt-6 animate-fade-in-up stagger-2 opacity-0">
