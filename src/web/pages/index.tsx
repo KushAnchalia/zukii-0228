@@ -29,13 +29,24 @@ const Index = () => {
         <AnimatedBackground />
         
         <div className="text-center relative z-10 animate-fade-in">
-          <div className="relative flex items-center justify-center mb-8">
+          <div className="relative flex items-center justify-center gap-3 mb-8">
             <img
-              src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+              src="./zukii-owl-simple.png"
               alt="Zukii"
-              className="h-24 w-auto animate-glow-pulse"
+              className="h-20 w-auto animate-glow-pulse"
               style={{ filter: 'drop-shadow(0 0 20px rgba(34, 211, 238, 0.4))' }}
             />
+            <span 
+              className="text-4xl font-bold font-display"
+              style={{
+                background: 'linear-gradient(135deg, #22D3EE 0%, #6EE7B7 50%, #22D3EE 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              Zukii
+            </span>
           </div>
           <div className="flex items-center justify-center gap-3 text-gray-400">
             <div className="relative">

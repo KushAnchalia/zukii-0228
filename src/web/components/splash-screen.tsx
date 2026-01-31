@@ -80,25 +80,40 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         }`}
       >
         {/* Logo with glow effect */}
-        <div className="relative">
+        <div className="relative flex items-center gap-4">
           {/* Glow layer */}
           <img
-            src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+            src="./zukii-owl-simple.png"
             alt=""
-            className="absolute inset-0 h-36 w-auto blur-xl opacity-50"
+            className="absolute inset-0 h-28 w-auto blur-xl opacity-50"
             style={{
               animation: phase === 'hold' ? 'splash-logo-glow 2s ease-in-out infinite' : 'none',
             }}
           />
           {/* Main logo */}
           <img
-            src="./39c819d7-24aa-4b3f-9b40-6f14c13896f4.png"
+            src="./zukii-owl-simple.png"
             alt="Zukii"
-            className="relative h-36 w-auto"
+            className="relative h-28 w-auto"
             style={{
               filter: 'drop-shadow(0 0 30px rgba(34, 211, 238, 0.5))',
             }}
           />
+          {/* Brand text */}
+          <span
+            className={`text-5xl font-bold font-display transition-all duration-500 ${
+              phase === 'hold' ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              background: 'linear-gradient(135deg, #22D3EE 0%, #6EE7B7 50%, #22D3EE 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow: '0 0 40px rgba(34, 211, 238, 0.4)'
+            }}
+          >
+            Zukii
+          </span>
         </div>
 
         {/* Tagline with delayed fade in */}
